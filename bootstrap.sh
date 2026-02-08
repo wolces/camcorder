@@ -6,8 +6,8 @@
 
 set -e
 
-# configuration - EDIT THESE
-GIT_REPO="https://github.com/YOUR_USERNAME/camcorder.git"
+# configuration
+GIT_REPO="https://github.com/wolces/camcorder.git"
 GIT_BRANCH="main"
 INSTALL_USER="camcorder"
 WIFI_SSID="Camcorder"
