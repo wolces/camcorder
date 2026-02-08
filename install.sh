@@ -39,9 +39,31 @@ echo "stopping conflicting services..."
 systemctl stop dnsmasq || true
 systemctl stop hostapd || true
 
-# disable services from auto-starting (we'll start them manually)
+# unmask services (they may have been masked)
+systemctl unmask dnsmasq || true
+systemctl unmask hostapd || true
+
+# disable services from auto-starting (we'll start them via our own service)
 systemctl disable dnsmasq || true
 systemctl disable hostapd || true
+
+# configure NetworkManager to ignore wlan0
+echo "configuring NetworkManager to ignore wlan0..."
+mkdir -p /etc/NetworkManager/conf.d
+cat > /etc/NetworkManager/conf.d/unmanage-wlan0.conf <<EOF
+[keyfile]
+unmanaged-devices=interface-name:wlan0
+EOF
+
+# configure dhcpcd to ignore wlan0 (if dhcpcd is in use)
+if [ -f /etc/dhcpcd.conf ]; then
+    if ! grep -q "denyinterfaces wlan0" /etc/dhcpcd.conf; then
+        echo "denyinterfaces wlan0" >> /etc/dhcpcd.conf
+    fi
+fi
+
+# restart NetworkManager to apply config
+systemctl restart NetworkManager || true
 
 # make scripts executable
 echo "setting permissions..."
