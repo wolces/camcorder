@@ -1,12 +1,11 @@
 [Unit]
-Description=Raspberry Pi Video Recorder Button Service
+Description=Camcorder Auto-Update Monitor
 After=network.target
 
 [Service]
-ExecStart=/bin/bash -lc '/usr/bin/python3 /home/camcorder/record_button.py'
+ExecStart=/usr/bin/python3 /home/camcorder/auto_update.py
 User=camcorder
 Group=camcorder
-SupplementaryGroups=video audio render
 WorkingDirectory=/home/camcorder
 StandardOutput=inherit
 StandardError=inherit

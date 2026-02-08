@@ -9,7 +9,6 @@ from signal import pause
 BUTTON_PIN = 17
 LED_PIN = 27
 VIDEO_DEVICE = "/dev/video0"
-# Verify with 'arecord -l' if audio is silent (e.g., might be hw:1,0 or hw:3,0)
 AUDIO_DEVICE = "hw:2,0" 
 
 # Directories
@@ -22,8 +21,6 @@ os.makedirs(DEINTERLACED_DIR, exist_ok=True)
 button = Button(BUTTON_PIN, pull_up=True, hold_time=3)
 led = LED(LED_PIN)
 
-# We track the recording process, but we don't track transcodes 
-# (fire-and-forget to keep the button responsive)
 recording_process = None
 current_recording_filename = None
 
@@ -61,6 +58,7 @@ def transcode_background(input_path):
         "-c:v", "libx264",
         "-preset", "superfast",
         "-crf", "23",
+        "-aspect", "4:3",
         "-c:a", "copy",
         output_path
     ]
@@ -78,6 +76,8 @@ def start_recording():
     
     print(f"Starting archival recording: {current_recording_filename}")
 
+    # The "Master" Archival Command
+    # Preserves interlacing for future QTGMC restoration
     cmd = [
         "/usr/bin/ffmpeg", "-y",
         "-f", "v4l2",
@@ -88,6 +88,7 @@ def start_recording():
         "-c:v", "libx264",
         "-crf", "16",
         "-pix_fmt", "yuv422p",
+        "-aspect", "4:3",
         "-preset", "superfast",
         "-c:a", "aac",
         "-b:a", "192k",
