@@ -36,16 +36,18 @@ apt-get install -y \
 
 # stop services that might interfere
 echo "stopping conflicting services..."
-systemctl stop dnsmasq || true
-systemctl stop hostapd || true
+systemctl stop dnsmasq 2>/dev/null || true
+systemctl stop hostapd 2>/dev/null || true
 
 # unmask services (they may have been masked)
-systemctl unmask dnsmasq || true
-systemctl unmask hostapd || true
+echo "unmasking services..."
+systemctl unmask dnsmasq 2>/dev/null || true
+systemctl unmask hostapd 2>/dev/null || true
 
 # disable services from auto-starting (we'll start them via our own service)
-systemctl disable dnsmasq || true
-systemctl disable hostapd || true
+echo "disabling default service auto-start..."
+systemctl disable dnsmasq 2>/dev/null || true
+systemctl disable hostapd 2>/dev/null || true
 
 # configure NetworkManager to ignore wlan0
 echo "configuring NetworkManager to ignore wlan0..."
@@ -54,16 +56,34 @@ cat > /etc/NetworkManager/conf.d/unmanage-wlan0.conf <<EOF
 [keyfile]
 unmanaged-devices=interface-name:wlan0
 EOF
+echo "  - wrote /etc/NetworkManager/conf.d/unmanage-wlan0.conf"
 
 # configure dhcpcd to ignore wlan0 (if dhcpcd is in use)
 if [ -f /etc/dhcpcd.conf ]; then
+    echo "configuring dhcpcd to ignore wlan0..."
     if ! grep -q "denyinterfaces wlan0" /etc/dhcpcd.conf; then
         echo "denyinterfaces wlan0" >> /etc/dhcpcd.conf
+        echo "  - added denyinterfaces wlan0 to /etc/dhcpcd.conf"
+    else
+        echo "  - already configured"
     fi
 fi
 
-# restart NetworkManager to apply config
-systemctl restart NetworkManager || true
+# check if NetworkManager is active before trying to restart it
+echo "checking NetworkManager status..."
+if systemctl is-active --quiet NetworkManager; then
+    echo "restarting NetworkManager (timeout: 10s)..."
+    timeout 10 systemctl restart NetworkManager 2>/dev/null || {
+        echo "  - NetworkManager restart timed out or failed, continuing anyway..."
+    }
+else
+    echo "  - NetworkManager not active, skipping restart"
+fi
+
+# disconnect wlan0 from any existing connections
+echo "disconnecting wlan0 from existing connections..."
+nmcli device disconnect wlan0 2>/dev/null || true
+systemctl restart dhcpcd 2>/dev/null || true
 
 # make scripts executable
 echo "setting permissions..."
