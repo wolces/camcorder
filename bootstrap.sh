@@ -1,12 +1,13 @@
 #!/bin/bash
 # bootstrap script - sets up camcorder system on a fresh raspberry pi
 # can be run on any fresh raspberry pi os installation
-# usage: curl -sSL https://raw.githubusercontent.com/wolces/main/bootstrap.sh | sudo bash
+# usage: curl -sSL https://raw.githubusercontent.com/wolces/camcorder/refs/heads/main/bootstrap.sh | sudo bash
+
 
 set -e
 
-# configuration
-GIT_REPO="https://github.com/wolces/camcorder.git"
+# configuration - EDIT THESE
+GIT_REPO="https://github.com/YOUR_USERNAME/camcorder.git"
 GIT_BRANCH="main"
 INSTALL_USER="camcorder"
 WIFI_SSID="Camcorder"
@@ -52,24 +53,50 @@ systemctl disable dnsmasq 2>/dev/null || true
 systemctl disable hostapd 2>/dev/null || true
 
 echo "cloning repository..."
+
+# check if git repo already exists
 if [ -d "$USER_HOME/.git" ]; then
     echo "git repository already exists, pulling latest..."
     cd "$USER_HOME"
     sudo -u "$INSTALL_USER" git pull
 else
-    # backup existing files if any
-    if [ -d "$USER_HOME" ] && [ "$(ls -A $USER_HOME)" ]; then
-        BACKUP_DIR="$USER_HOME.backup.$(date +%s)"
-        echo "backing up existing files to $BACKUP_DIR"
-        mv "$USER_HOME" "$BACKUP_DIR"
+    # handle existing home directory
+    if [ -d "$USER_HOME" ]; then
+        # check if directory has files (excluding hidden files we might create)
+        if [ "$(ls -A $USER_HOME 2>/dev/null | grep -v '^\.')" ]; then
+            BACKUP_DIR="${USER_HOME}.backup.$(date +%s)"
+            echo "backing up existing files to $BACKUP_DIR"
+            # create backup dir and move contents
+            mkdir -p "$BACKUP_DIR"
+            cp -r "$USER_HOME"/* "$BACKUP_DIR"/ 2>/dev/null || true
+            cp -r "$USER_HOME"/.[!.]* "$BACKUP_DIR"/ 2>/dev/null || true
+            # remove old contents
+            rm -rf "$USER_HOME"/*
+            rm -rf "$USER_HOME"/.[!.]* 2>/dev/null || true
+        fi
+    else
+        # create home directory if it doesn't exist
+        mkdir -p "$USER_HOME"
     fi
     
-    sudo -u "$INSTALL_USER" git clone "$GIT_REPO" "$USER_HOME"
+    # ensure correct ownership
+    chown -R "$INSTALL_USER:$INSTALL_USER" "$USER_HOME"
+    
+    # clone as the user into home directory
+    echo "cloning $GIT_REPO into $USER_HOME..."
+    sudo -u "$INSTALL_USER" git clone "$GIT_REPO" "${USER_HOME}_tmp"
+    
+    # move contents from temp clone to home
+    sudo -u "$INSTALL_USER" mv "${USER_HOME}_tmp"/.git "$USER_HOME"/ 
+    sudo -u "$INSTALL_USER" cp -r "${USER_HOME}_tmp"/* "$USER_HOME"/ 2>/dev/null || true
+    sudo -u "$INSTALL_USER" cp -r "${USER_HOME}_tmp"/.[!.]* "$USER_HOME"/ 2>/dev/null || true
+    rm -rf "${USER_HOME}_tmp"
+    
     cd "$USER_HOME"
     sudo -u "$INSTALL_USER" git checkout "$GIT_BRANCH"
 fi
 
-# update wifi credentials
+# update wifi credentials if provided
 if [ -f "$USER_HOME/hostapd.conf" ]; then
     sed -i "s/^ssid=.*/ssid=$WIFI_SSID/" "$USER_HOME/hostapd.conf"
     sed -i "s/^wpa_passphrase=.*/wpa_passphrase=$WIFI_PASSWORD/" "$USER_HOME/hostapd.conf"
