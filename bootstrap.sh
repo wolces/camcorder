@@ -13,6 +13,7 @@ INSTALL_USER="camcorder"
 WIFI_SSID="Camcorder"
 WIFI_PASSWORD="recording"
 
+
 echo "=== camcorder system bootstrap ==="
 echo ""
 echo "this will set up a complete camcorder system on this raspberry pi"
@@ -82,15 +83,21 @@ else
     # ensure correct ownership
     chown -R "$INSTALL_USER:$INSTALL_USER" "$USER_HOME"
     
-    # clone as the user into home directory
+    # use /tmp for temporary clone
+    TEMP_CLONE="/tmp/camcorder_clone_$$"
+    
+    # clone as the user into temp directory
     echo "cloning $GIT_REPO into $USER_HOME..."
-    sudo -u "$INSTALL_USER" git clone "$GIT_REPO" "${USER_HOME}_tmp"
+    sudo -u "$INSTALL_USER" git clone "$GIT_REPO" "$TEMP_CLONE"
     
     # move contents from temp clone to home
-    sudo -u "$INSTALL_USER" mv "${USER_HOME}_tmp"/.git "$USER_HOME"/ 
-    sudo -u "$INSTALL_USER" cp -r "${USER_HOME}_tmp"/* "$USER_HOME"/ 2>/dev/null || true
-    sudo -u "$INSTALL_USER" cp -r "${USER_HOME}_tmp"/.[!.]* "$USER_HOME"/ 2>/dev/null || true
-    rm -rf "${USER_HOME}_tmp"
+    mv "$TEMP_CLONE"/.git "$USER_HOME"/ 
+    mv "$TEMP_CLONE"/* "$USER_HOME"/ 2>/dev/null || true
+    mv "$TEMP_CLONE"/.[!.]* "$USER_HOME"/ 2>/dev/null || true
+    rm -rf "$TEMP_CLONE"
+    
+    # fix ownership
+    chown -R "$INSTALL_USER:$INSTALL_USER" "$USER_HOME"
     
     cd "$USER_HOME"
     sudo -u "$INSTALL_USER" git checkout "$GIT_BRANCH"
