@@ -1,6 +1,6 @@
 # Raspberry Pi tapeless camcorder system
 
-This repo contains code that configures a Raspberry Pi to act as a digital video recorder for an analog video source. It additionally creates a wifi AP and webserver for accessing and transcoding recordings.
+This repo contains code that configures a Raspberry Pi to act as a digital video recorder for an analog video source. It additionally creates a wifi AP and webserver for accessing and transcoding recordings. 95%+ of the repo was written by an LLM, including most of this readme, so set your expectations accordingly.
 
 I'm using it with an old Sony CCD-VX3 and Hauppauge USB-Live2 capture device, both of which I recently purchased on eBay. They are connected via the camcorder's S-Video out port. If you wanted to use it with composite or a different capture device, you would need to ensure the correct drivers are fetched in the `setup.sh` script and/or modify the `record_button.py` file.
 
@@ -31,7 +31,7 @@ see **bootstrap script setup** section below for first-time configuration.
 
 if you already have the system installed and just want to update:
 
-### automatic update (recommended)
+### automatic update
 1. make changes to code on your computer
 2. commit and push to git
 3. plug ethernet cable into pi
@@ -46,7 +46,7 @@ sudo systemctl restart web_server.service
 sudo systemctl restart wifi_ap.service
 ```
 
-## bootstrap script setup (first time only)
+## bootstrap script setup
 
 before deploying to your first pi, you need to configure the bootstrap script:
 
@@ -110,9 +110,7 @@ now the bootstrap script is ready to deploy to any fresh pi!
 1. **short press**: start/stop recording
 2. **long press (3 seconds)**: shutdown pi safely
 
-recordings are saved to `~/Videos/`:
-- **original**: `record_YYYY-MM-DD_HH-MM-SS.mp4` (high quality, interlaced)
-- **processed**: `~/Videos/deinterlaced/` (deinterlaced for modern displays)
+recordings are saved to `~/Videos/`
 
 ### accessing videos via wifi
 
@@ -120,7 +118,7 @@ recordings are saved to `~/Videos/`:
    - **ssid**: `Camcorder`
    - **password**: `recording`
 
-2. open browser to: `http://192.168.4.1:8080`
+2. open browser to: `http://camcorder.local`
 
 3. from the web interface you can:
    - view all recordings
@@ -128,6 +126,7 @@ recordings are saved to `~/Videos/`:
    - download to your device
    - delete unwanted files
    - see recording status and disk space
+   - create processed videos 
 
 ## configuration
 
@@ -148,8 +147,6 @@ sudo systemctl restart wifi_ap.service
 if you need to adjust recording settings, edit `record_button.py`:
 - `VIDEO_DEVICE`: usually `/dev/video0`
 - `AUDIO_DEVICE`: check with `arecord -l` if you need to change
-- video quality: change `-crf 16` (lower = better quality, 16-23 recommended)
-- audio bitrate: change `-b:a 192k` (128k-320k)
 
 ### auto-update settings
 
@@ -254,23 +251,6 @@ git ls-remote https://github.com/YOUR_USERNAME/camcorder.git
 sudo bash -x bootstrap.sh
 ```
 
-## technical details
-
-### video settings
-- **codec**: h.264 (libx264)
-- **pixel format**: yuv422p 
-- **crf**: 16
-- **audio**: aac 192kbps stereo
-
-### deinterlacing
-- **method**: bwdif (bob weaver deinterlacing filter)
-- **field order**: top field first (standard for ntsc)
-- **output**: 60fps progressive
-
-### network
-- **wifi range**: 192.168.4.2 - 192.168.4.20
-- **gateway**: 192.168.4.1
-- **dns**: handled by dnsmasq on pi
 
 ## development
 

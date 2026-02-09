@@ -120,7 +120,7 @@ def start_recording():
         "-f", "alsa",
         "-i", AUDIO_DEVICE,
         "-c:v", "libx264",
-        "-crf", "16",
+        "-crf", "18",
         "-pix_fmt", "yuv422p",
         "-aspect", "4:3",
         "-preset", "superfast",

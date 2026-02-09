@@ -428,6 +428,92 @@
             display: block;
         }
         
+        .preview-split {
+            position: absolute;
+            inset: 0;
+            display: none;
+            overflow: hidden;
+        }
+        
+        .preview-split.visible {
+            display: block;
+        }
+        
+        .preview-split-left {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+        }
+        
+        .preview-split-left img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .preview-split-right {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            overflow: hidden;
+        }
+        
+        .preview-split-right img {
+            height: 100%;
+            object-fit: contain;
+            /* image is positioned so it aligns with the left image */
+            position: absolute;
+            right: 0;
+        }
+        
+        .preview-split-divider {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: #fff;
+            cursor: ew-resize;
+            z-index: 10;
+            box-shadow: 0 0 6px rgba(0,0,0,0.6);
+        }
+        
+        .preview-split-divider::after {
+            content: '◀ ▶';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: #fff;
+            font-size: 9px;
+            padding: 4px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+            letter-spacing: 2px;
+        }
+        
+        .preview-split-label {
+            position: absolute;
+            bottom: 8px;
+            background: rgba(0,0,0,0.7);
+            color: #ccc;
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 3px;
+            pointer-events: none;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .preview-split-label.left {
+            left: 8px;
+        }
+        
+        .preview-split-label.right {
+            right: 8px;
+        }
+        
         .preview-loading {
             position: absolute;
             inset: 0;
@@ -440,6 +526,7 @@
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.15s;
+            z-index: 20;
         }
         
         .preview-loading.visible {
@@ -945,8 +1032,23 @@
                 
                 <!-- preview panel -->
                 <div class="preview-panel">
-                    <div class="preview-box">
+                    <div class="preview-box" id="preview-box">
+                        <!-- single image view (filtered or original) -->
                         <img class="preview-img" id="preview-img" alt="Preview" src="">
+                        
+                        <!-- split compare view -->
+                        <div class="preview-split" id="preview-split">
+                            <div class="preview-split-left" id="split-left">
+                                <img id="split-img-original" alt="Original" src="">
+                            </div>
+                            <div class="preview-split-right" id="split-right">
+                                <img id="split-img-filtered" alt="Filtered" src="">
+                            </div>
+                            <div class="preview-split-divider" id="split-divider"></div>
+                            <span class="preview-split-label left">Original</span>
+                            <span class="preview-split-label right">Filtered</span>
+                        </div>
+                        
                         <div class="preview-loading" id="preview-loading">Generating preview…</div>
                     </div>
                     
@@ -965,7 +1067,8 @@
                     <div class="preview-info">
                         Preview renders a single frame through the actual ffmpeg filter chain on the Pi. 
                         Adjust filters on the left and the preview will update automatically. 
-                        Use the seek slider to pick which frame to preview.
+                        Use the seek slider to pick which frame to preview. In compare mode, 
+                        drag the divider left and right to see original vs. filtered side by side.
                     </div>
                 </div>
             </div>
@@ -989,8 +1092,7 @@
         let previewMode = 'compare';  // 'filtered', 'original', 'compare'
         let previewOriginalUrl = '';
         let previewFilteredUrl = '';
-        let previewShowingOriginal = false;
-        let compareInterval = null;
+        let splitPosition = 50;  // percent from left
         
         const sectionStates = {
             deinterlace: true,
@@ -1084,19 +1186,16 @@
         function collectFilters() {
             const f = {};
             
-            // deinterlace
             f.deinterlace = sectionStates.deinterlace;
             f.deinterlace_method = document.getElementById('deinterlace-method').value;
             if (f.deinterlace_method === 'yadif') {
                 f.deinterlace_mode = document.getElementById('yadif-mode').value;
             }
             
-            // denoise
             f.denoise = sectionStates.denoise;
             f.denoise_spatial = parseFloat(document.getElementById('denoise-spatial').value);
             f.denoise_temporal = parseFloat(document.getElementById('denoise-temporal').value);
             
-            // white balance
             if (sectionStates.whitebalance) {
                 f.color_temp = parseInt(document.getElementById('color-temp').value);
                 f.tint = parseInt(document.getElementById('color-tint').value);
@@ -1105,7 +1204,6 @@
                 f.tint = 0;
             }
             
-            // image adjustments
             if (sectionStates.image) {
                 f.brightness = parseInt(document.getElementById('brightness').value);
                 f.contrast = parseInt(document.getElementById('contrast').value);
@@ -1118,12 +1216,10 @@
                 f.gamma = 100;
             }
             
-            // sharpen
             f.sharpen = sectionStates.sharpen;
             f.sharpen_luma = parseFloat(document.getElementById('sharpen-luma').value);
             f.sharpen_chroma = parseFloat(document.getElementById('sharpen-chroma').value);
             
-            // crop
             if (sectionStates.crop) {
                 f.crop = document.getElementById('crop-mode').value;
                 f.aspect = document.getElementById('output-aspect').value;
@@ -1132,7 +1228,6 @@
                 f.aspect = '4:3';
             }
             
-            // audio
             f.audio_cleanup = sectionStates.audio;
             f.highpass_freq = parseInt(document.getElementById('highpass-freq').value);
             f.lowpass_freq = parseInt(document.getElementById('lowpass-freq').value);
@@ -1142,7 +1237,6 @@
             f.loudnorm = document.getElementById('loudnorm-mode').value === 'on';
             f.audio_bitrate = parseInt(document.getElementById('audio-bitrate').value);
             
-            // encoding
             f.quality_mode = document.getElementById('quality-mode').value;
             f.crf = parseInt(document.getElementById('crf-value').value);
             f.target_bitrate = parseInt(document.getElementById('target-bitrate').value);
@@ -1168,39 +1262,41 @@
             loading.classList.add('visible');
             
             try {
-                // fetch filtered frame
-                const filteredResp = await fetch('/preview', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        date: currentDate,
-                        time: currentTime,
-                        filename: currentFilename,
-                        filters: filters,
-                        seek: seek
+                // fire both requests in parallel
+                const [filteredResp, origResp] = await Promise.all([
+                    fetch('/preview', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            date: currentDate,
+                            time: currentTime,
+                            filename: currentFilename,
+                            filters: filters,
+                            seek: seek
+                        })
+                    }),
+                    fetch('/preview', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            date: currentDate,
+                            time: currentTime,
+                            filename: currentFilename,
+                            filters: {},
+                            seek: seek
+                        })
                     })
-                });
+                ]);
                 
                 if (filteredResp.ok) {
                     const blob = await filteredResp.blob();
+                    if (previewFilteredUrl) URL.revokeObjectURL(previewFilteredUrl);
                     previewFilteredUrl = URL.createObjectURL(blob);
                 }
                 
-                // fetch original frame (no filters)
-                const origResp = await fetch('/preview', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({
-                        date: currentDate,
-                        time: currentTime,
-                        filename: currentFilename,
-                        filters: {},
-                        seek: seek
-                    })
-                });
-                
                 if (origResp.ok) {
                     const blob = await origResp.blob();
+                    if (previewOriginalUrl) URL.revokeObjectURL(previewOriginalUrl);
                     previewOriginalUrl = URL.createObjectURL(blob);
                 }
                 
@@ -1222,27 +1318,93 @@
         }
         
         function applyPreviewMode() {
-            const img = document.getElementById('preview-img');
-            clearInterval(compareInterval);
+            const singleImg = document.getElementById('preview-img');
+            const splitView = document.getElementById('preview-split');
             
-            if (previewMode === 'filtered' && previewFilteredUrl) {
-                img.src = previewFilteredUrl;
-            } else if (previewMode === 'original' && previewOriginalUrl) {
-                img.src = previewOriginalUrl;
-            } else if (previewMode === 'compare') {
-                // alternate between original and filtered every 1.2s
-                previewShowingOriginal = false;
-                if (previewFilteredUrl) img.src = previewFilteredUrl;
-                compareInterval = setInterval(() => {
-                    previewShowingOriginal = !previewShowingOriginal;
-                    if (previewShowingOriginal && previewOriginalUrl) {
-                        img.src = previewOriginalUrl;
-                    } else if (previewFilteredUrl) {
-                        img.src = previewFilteredUrl;
-                    }
-                }, 1200);
+            if (previewMode === 'compare') {
+                singleImg.style.display = 'none';
+                splitView.classList.add('visible');
+                
+                if (previewOriginalUrl) {
+                    document.getElementById('split-img-original').src = previewOriginalUrl;
+                }
+                if (previewFilteredUrl) {
+                    document.getElementById('split-img-filtered').src = previewFilteredUrl;
+                }
+                updateSplitPosition(splitPosition);
+            } else {
+                splitView.classList.remove('visible');
+                singleImg.style.display = 'block';
+                
+                if (previewMode === 'filtered' && previewFilteredUrl) {
+                    singleImg.src = previewFilteredUrl;
+                } else if (previewMode === 'original' && previewOriginalUrl) {
+                    singleImg.src = previewOriginalUrl;
+                }
             }
         }
+        
+        /* =============================================
+           split view draggable divider
+           ============================================= */
+        function updateSplitPosition(pct) {
+            splitPosition = Math.max(5, Math.min(95, pct));
+            const divider = document.getElementById('split-divider');
+            const rightPanel = document.getElementById('split-right');
+            const box = document.getElementById('preview-box');
+            const boxWidth = box.offsetWidth;
+            
+            divider.style.left = splitPosition + '%';
+            
+            // right panel clips from the split point to the right edge
+            rightPanel.style.left = splitPosition + '%';
+            rightPanel.style.width = (100 - splitPosition) + '%';
+            
+            // the filtered image inside the right panel needs to be sized
+            // to the full box width so it aligns pixel-for-pixel with the original
+            const rightImg = document.getElementById('split-img-filtered');
+            rightImg.style.width = boxWidth + 'px';
+            rightImg.style.left = '-' + (boxWidth * splitPosition / 100) + 'px';
+            rightImg.style.right = 'auto';
+        }
+        
+        // drag handling for the split divider
+        (function() {
+            const divider = document.getElementById('split-divider');
+            let dragging = false;
+            
+            function startDrag(e) {
+                e.preventDefault();
+                dragging = true;
+            }
+            
+            function onDrag(e) {
+                if (!dragging) return;
+                const box = document.getElementById('preview-box');
+                const rect = box.getBoundingClientRect();
+                const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                const pct = ((clientX - rect.left) / rect.width) * 100;
+                updateSplitPosition(pct);
+            }
+            
+            function stopDrag() {
+                dragging = false;
+            }
+            
+            divider.addEventListener('mousedown', startDrag);
+            divider.addEventListener('touchstart', startDrag, {passive: false});
+            window.addEventListener('mousemove', onDrag);
+            window.addEventListener('touchmove', onDrag, {passive: false});
+            window.addEventListener('mouseup', stopDrag);
+            window.addEventListener('touchend', stopDrag);
+            
+            // also update split sizing when window resizes
+            window.addEventListener('resize', function() {
+                if (previewMode === 'compare') {
+                    updateSplitPosition(splitPosition);
+                }
+            });
+        })();
         
         /* =============================================
            modal open / close / reset
@@ -1254,18 +1416,15 @@
             document.getElementById('modal-filename').textContent = filename;
             document.getElementById('process-modal').classList.add('active');
             
-            // initial preview
             fetchPreview();
         }
         
         function closeProcessModal() {
             document.getElementById('process-modal').classList.remove('active');
-            clearInterval(compareInterval);
             clearTimeout(previewTimer);
         }
         
         function resetFilters() {
-            // reset section states
             const defaults = {deinterlace: true, denoise: false, whitebalance: false, image: false, sharpen: false, crop: false, audio: false};
             for (const [key, val] of Object.entries(defaults)) {
                 sectionStates[key] = val;
@@ -1280,7 +1439,6 @@
                 }
             }
             
-            // reset all sliders and selects to defaults
             const resets = {
                 'deinterlace-method': 'bwdif',
                 'yadif-mode': '1',
@@ -1315,7 +1473,6 @@
                 if (el) el.value = val;
             }
             
-            // reset displayed values
             document.getElementById('val-denoise-spatial').textContent = '3.0';
             document.getElementById('val-denoise-temporal').textContent = '6.0';
             document.getElementById('val-color-temp').textContent = '0';
@@ -1332,7 +1489,6 @@
             document.getElementById('val-crf-value').textContent = '20';
             document.getElementById('val-target-bitrate').textContent = '5000 kbps';
             
-            // reset visibility
             document.getElementById('yadif-mode-row').style.display = 'none';
             document.getElementById('dehum-freq-row').style.display = 'none';
             toggleQualityMode();
@@ -1422,7 +1578,7 @@
             if (e.target === this) closeProcessModal();
         });
         
-        // keyboard shortcut: escape to close modal
+        // escape to close
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') closeProcessModal();
         });

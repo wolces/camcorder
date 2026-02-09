@@ -351,10 +351,12 @@ def preview_frame():
             return send_file(cache_path, mimetype='image/jpeg')
 
     # build ffmpeg command to extract and filter one frame
+    # -ss placed after -i for accurate frame-level seeking (pre-input seeks
+    # to nearest keyframe which often lands on frame 0 for sparse-keyframe files)
     cmd = [
         '/usr/bin/ffmpeg', '-y',
-        '-ss', str(seek_seconds),
         '-i', input_path,
+        '-ss', str(seek_seconds),
         '-frames:v', '1',
     ]
 
@@ -398,8 +400,8 @@ def thumbnail(date, time, filename):
 
     cmd = [
         '/usr/bin/ffmpeg', '-y',
-        '-ss', '2',
         '-i', input_path,
+        '-ss', '2',
         '-frames:v', '1',
         '-q:v', '5',
         '-f', 'image2',
