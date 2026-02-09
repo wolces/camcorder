@@ -145,6 +145,22 @@
             margin-bottom: 12px;
         }
         
+        .video-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 10px;
+        }
+        
+        .filter-tag {
+            font-size: 10px;
+            background: #333;
+            color: #bbb;
+            padding: 2px 7px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+        
         .video-actions {
             display: flex;
             gap: 8px;
@@ -657,7 +673,7 @@
                                        controls></video>
                                 <div class="video-info">
                                     <div class="video-name">{{ video.filename }}</div>
-                                    <div class="video-meta">{{ video.size_mb }} MB</div>
+                                    <div class="video-meta">{{ video.size_mb }} MB · {{ video.created_display }}</div>
                                     <div class="video-actions">
                                         <button class="btn btn-success" onclick="showProcessModal('{{ day.date }}', '{{ time_slot.time }}', '{{ video.filename }}')">Process</button>
                                         <a href="/download/{{ day.date }}/{{ time_slot.time }}/raw/{{ video.filename }}" class="btn btn-primary">Download</a>
@@ -684,7 +700,14 @@
                                        controls></video>
                                 <div class="video-info">
                                     <div class="video-name">{{ video.filename }}</div>
-                                    <div class="video-meta">{{ video.size_mb }} MB</div>
+                                    <div class="video-meta">{{ video.size_mb }} MB · {{ video.created_display }}</div>
+                                    {% if video.filter_tags %}
+                                    <div class="video-filters">
+                                        {% for tag in video.filter_tags %}
+                                        <span class="filter-tag">{{ tag }}</span>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                     <div class="video-actions">
                                         <a href="/download/{{ day.date }}/{{ time_slot.time }}/processed/{{ video.filename }}" class="btn btn-primary">Download</a>
                                         <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', '{{ time_slot.time }}', 'processed', '{{ video.filename }}')">Delete</button>
@@ -1054,7 +1077,7 @@
                     
                     <div class="preview-controls">
                         <label>Seek</label>
-                        <input type="range" id="preview-seek" min="0" max="60" value="2" step="1" oninput="updateSeekLabel(this); schedulePreview()">
+                        <input type="range" id="preview-seek" min="0" max="60" value="2" step="0.1" oninput="updateSeekLabel(this); schedulePreview()">
                         <span class="control-value" id="val-preview-seek">0:02</span>
                     </div>
                     
@@ -1157,10 +1180,12 @@
         }
         
         function updateSeekLabel(el) {
-            const s = parseInt(el.value);
-            const m = Math.floor(s / 60);
-            const sec = s % 60;
-            document.getElementById('val-preview-seek').textContent = m + ':' + String(sec).padStart(2, '0');
+            const totalSec = parseFloat(el.value);
+            const m = Math.floor(totalSec / 60);
+            const s = totalSec % 60;
+            // show tenths for sub-second precision
+            const secStr = s < 10 ? '0' + s.toFixed(1) : s.toFixed(1);
+            document.getElementById('val-preview-seek').textContent = m + ':' + secStr;
         }
         
         function toggleQualityMode() {
@@ -1255,7 +1280,7 @@
         }
         
         async function fetchPreview() {
-            const seek = parseInt(document.getElementById('preview-seek').value);
+            const seek = parseFloat(document.getElementById('preview-seek').value);
             const filters = collectFilters();
             
             const loading = document.getElementById('preview-loading');
@@ -1409,12 +1434,30 @@
         /* =============================================
            modal open / close / reset
            ============================================= */
-        function showProcessModal(date, time, filename) {
+        async function showProcessModal(date, time, filename) {
             currentDate = date;
             currentTime = time;
             currentFilename = filename;
             document.getElementById('modal-filename').textContent = filename;
             document.getElementById('process-modal').classList.add('active');
+            
+            // fetch actual video duration and configure seek slider
+            const seekSlider = document.getElementById('preview-seek');
+            try {
+                const resp = await fetch(`/video_info/${date}/${time}/${filename}`);
+                if (resp.ok) {
+                    const info = await resp.json();
+                    const duration = info.duration || 60;
+                    seekSlider.max = duration.toFixed(1);
+                    // start preview at 10% into the video (avoids blank leader frames)
+                    const startSeek = Math.min(2, duration * 0.1);
+                    seekSlider.value = startSeek.toFixed(1);
+                    updateSeekLabel(seekSlider);
+                }
+            } catch (e) {
+                // fallback: keep default max of 60
+                seekSlider.max = 60;
+            }
             
             fetchPreview();
         }

@@ -41,13 +41,116 @@ def parse_filename_timestamp(filename):
 def get_video_metadata(filepath, filename, video_type):
     """get metadata for a single video file"""
     stat = os.stat(filepath)
-    return {
+    meta = {
         'filename': filename,
         'type': video_type,
         'size': stat.st_size,
         'size_mb': round(stat.st_size / 1024 / 1024, 1),
-        'modified': stat.st_mtime
+        'modified': stat.st_mtime,
+        'created_display': datetime.fromtimestamp(stat.st_mtime).strftime('%b %d, %Y at %I:%M %p'),
     }
+
+    # for processed videos, parse the filename tags into readable descriptions
+    if video_type == 'processed':
+        meta['filter_tags'] = parse_filter_tags(filename)
+
+    return meta
+
+
+# map of filename tag prefixes to human-readable labels
+FILTER_TAG_MAP = {
+    'deint-bwdif': 'Deinterlace (BWDIF)',
+    'deint-yadif': 'Deinterlace (Yadif)',
+    'deint-estdif': 'Deinterlace (ESTDIF)',
+    'deint-kerndeint': 'Deinterlace (Kerndeint)',
+    'deint': 'Deinterlaced',
+    'sharp': 'Sharpened',
+    'wb': 'White balance adjusted',
+    'audio': 'Audio cleanup',
+    'copy': 'No filters (copy)',
+    'default': 'Default processing',
+}
+
+
+def parse_filter_tags(filename):
+    """parse filter tags from processed filename into readable list.
+    e.g. 'record_2026-02-08_14-23-45_deint-bwdif_dn-s3.0_sharp.mp4'
+    returns ['Deinterlace (BWDIF)', 'Denoise: spatial 3.0', 'Sharpened']
+    """
+    # strip the base recording name prefix and .mp4 suffix
+    name = filename.replace('.mp4', '')
+    # find the part after the timestamp: record_YYYY-MM-DD_HH-MM-SS_<tags>
+    match = re.match(r'record_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}_(.*)', name)
+    if not match:
+        return []
+
+    tag_string = match.group(1)
+    tags = tag_string.split('_')
+    descriptions = []
+
+    for tag in tags:
+        # check exact matches first
+        if tag in FILTER_TAG_MAP:
+            descriptions.append(FILTER_TAG_MAP[tag])
+            continue
+
+        # denoise: dn-s3.0
+        m = re.match(r'dn-s([\d.]+)', tag)
+        if m:
+            descriptions.append(f'Denoise: spatial {m.group(1)}')
+            continue
+
+        # brightness: br+10 or br-5
+        m = re.match(r'br([+-]\d+)', tag)
+        if m:
+            descriptions.append(f'Brightness: {m.group(1)}')
+            continue
+
+        # contrast: ct120
+        m = re.match(r'ct(\d+)', tag)
+        if m:
+            descriptions.append(f'Contrast: {m.group(1)}%')
+            continue
+
+        # saturation: sat120
+        m = re.match(r'sat(\d+)', tag)
+        if m:
+            descriptions.append(f'Saturation: {m.group(1)}%')
+            continue
+
+        # gamma: gm120
+        m = re.match(r'gm(\d+)', tag)
+        if m:
+            descriptions.append(f'Gamma: {m.group(1)}%')
+            continue
+
+        # crop: crop4x3, crop16x9, crop1x1
+        m = re.match(r'crop(\d+)x(\d+)', tag)
+        if m:
+            descriptions.append(f'Cropped to {m.group(1)}:{m.group(2)}')
+            continue
+
+        # fallback: show the raw tag
+        if tag:
+            descriptions.append(tag)
+
+    return descriptions
+
+
+def get_video_duration(filepath):
+    """get video duration in seconds using ffprobe"""
+    try:
+        result = subprocess.run([
+            'ffprobe', '-v', 'error',
+            '-show_entries', 'format=duration',
+            '-of', 'default=noprint_wrappers=1:nokey=1',
+            filepath
+        ], capture_output=True, text=True, timeout=10)
+        if result.returncode == 0 and result.stdout.strip():
+            return float(result.stdout.strip())
+    except Exception:
+        pass
+    return 60.0  # fallback
 
 
 def get_videos_by_date_and_time():
@@ -320,6 +423,22 @@ def delete(date, time, video_type, filename):
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/video_info/<date>/<time>/<filename>')
+def video_info(date, time, filename):
+    """return video metadata including duration"""
+    filepath = os.path.join(VIDEO_DIR, date, time, 'raw', filename)
+
+    if not os.path.exists(filepath):
+        return jsonify({'error': 'not found'}), 404
+
+    duration = get_video_duration(filepath)
+
+    return jsonify({
+        'duration': round(duration, 2),
+        'filename': filename
+    })
 
 
 @app.route('/preview', methods=['POST'])
