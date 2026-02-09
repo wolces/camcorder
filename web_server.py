@@ -605,14 +605,14 @@ def process_video():
     # quality mode: crf or target bitrate
     quality_mode = filters.get('quality_mode', 'crf')
     if quality_mode == 'crf':
-        crf = filters.get('crf', 20)
+        crf = filters.get('crf', 18)
         cmd.extend(['-crf', str(crf)])
     elif quality_mode == 'bitrate':
         target_bitrate = filters.get('target_bitrate', 5000)
         cmd.extend(['-b:v', f'{target_bitrate}k'])
 
     # pixel format
-    pix_fmt = filters.get('pix_fmt', 'yuv420p')
+    pix_fmt = filters.get('pix_fmt', 'yuv422p')
     cmd.extend(['-pix_fmt', pix_fmt])
 
     # aspect ratio
