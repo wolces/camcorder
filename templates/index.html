@@ -55,6 +55,11 @@
             animation: pulse 1.5s ease-in-out infinite;
         }
         
+        .status-indicator.processing {
+            background: #f90;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+        
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.5; }
@@ -77,13 +82,24 @@
             padding-bottom: 10px;
         }
         
-        .video-category {
-            margin-bottom: 30px;
+        .time-section {
+            margin-bottom: 35px;
+            padding-left: 20px;
         }
         
-        h3 {
-            font-size: 16px;
+        .time-header {
+            font-size: 20px;
             margin-bottom: 15px;
+            color: #ddd;
+        }
+        
+        .video-category {
+            margin-bottom: 20px;
+        }
+        
+        h4 {
+            font-size: 14px;
+            margin-bottom: 12px;
             color: #aaa;
             text-transform: uppercase;
             letter-spacing: 1px;
@@ -132,6 +148,7 @@
         .video-actions {
             display: flex;
             gap: 8px;
+            flex-wrap: wrap;
         }
         
         button, .btn {
@@ -154,6 +171,15 @@
             background: #0056b3;
         }
         
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
         .btn-danger {
             background: #dc3545;
             color: white;
@@ -165,13 +191,104 @@
         
         .empty-state {
             text-align: center;
-            padding: 40px;
+            padding: 20px;
             color: #666;
+            font-size: 13px;
+        }
+        
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-header {
+            font-size: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #444;
+        }
+        
+        .filter-group {
+            margin-bottom: 20px;
+        }
+        
+        .filter-group label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+            cursor: pointer;
+        }
+        
+        .filter-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .filter-group input[type="range"] {
+            width: 100%;
+            margin-top: 5px;
+        }
+        
+        .filter-group select {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a1a;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 4px;
+            margin-top: 5px;
+        }
+        
+        .range-value {
+            display: inline-block;
+            min-width: 40px;
+            text-align: right;
+            color: #aaa;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #444;
+        }
+        
+        .modal-actions button {
+            flex: 1;
         }
         
         @media (max-width: 768px) {
             .video-grid {
                 grid-template-columns: 1fr;
+            }
+            .time-section {
+                padding-left: 10px;
             }
         }
     </style>
@@ -183,6 +300,10 @@
             <div class="status-item">
                 <div class="status-indicator" id="recording-indicator"></div>
                 <span id="recording-status">Ready</span>
+            </div>
+            <div class="status-item" id="processing-status" style="display: none;">
+                <div class="status-indicator processing"></div>
+                <span id="processing-count">0 processing</span>
             </div>
             <div class="status-item">
                 💾 {{ disk_used }}GB / {{ disk_total }}GB used
@@ -196,57 +317,64 @@
             <div class="date-section">
                 <h2 class="date-header">{{ day.date_display }}</h2>
                 
-                <div class="video-category">
-                    <h3>Deinterlaced Video</h3>
-                    {% if day.deinterlaced %}
-                    <div class="video-grid">
-                        {% for video in day.deinterlaced %}
-                        <div class="video-card">
-                            <video class="video-preview" 
-                                   src="/stream/{{ day.date }}/deinterlaced/{{ video.filename }}" 
-                                   preload="metadata"
-                                   controls></video>
-                            <div class="video-info">
-                                <div class="video-name">{{ video.filename }}</div>
-                                <div class="video-meta">{{ video.size_mb }} MB</div>
-                                <div class="video-actions">
-                                    <a href="/download/{{ day.date }}/deinterlaced/{{ video.filename }}" class="btn btn-primary">Download</a>
-                                    <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', 'deinterlaced', '{{ video.filename }}')">Delete</button>
+                {% for time_slot in day.times %}
+                <div class="time-section">
+                    <h3 class="time-header">⏱️ {{ time_slot.time_display }}</h3>
+                    
+                    <div class="video-category">
+                        <h4>Raw Video</h4>
+                        {% if time_slot.raw %}
+                        <div class="video-grid">
+                            {% for video in time_slot.raw %}
+                            <div class="video-card">
+                                <video class="video-preview" 
+                                       src="/stream/{{ day.date }}/{{ time_slot.time }}/raw/{{ video.filename }}" 
+                                       preload="metadata"
+                                       controls></video>
+                                <div class="video-info">
+                                    <div class="video-name">{{ video.filename }}</div>
+                                    <div class="video-meta">{{ video.size_mb }} MB</div>
+                                    <div class="video-actions">
+                                        <button class="btn btn-success" onclick="showProcessModal('{{ day.date }}', '{{ time_slot.time }}', '{{ video.filename }}')">Process</button>
+                                        <a href="/download/{{ day.date }}/{{ time_slot.time }}/raw/{{ video.filename }}" class="btn btn-primary">Download</a>
+                                        <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', '{{ time_slot.time }}', 'raw', '{{ video.filename }}')">Delete</button>
+                                    </div>
                                 </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+                        {% else %}
+                        <div class="empty-state">No raw videos</div>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <div class="empty-state">No deinterlaced videos (processing may be in progress)</div>
-                    {% endif %}
-                </div>
-                
-                <div class="video-category">
-                    <h3>Raw Video</h3>
-                    {% if day.raw %}
-                    <div class="video-grid">
-                        {% for video in day.raw %}
-                        <div class="video-card">
-                            <video class="video-preview" 
-                                   src="/stream/{{ day.date }}/raw/{{ video.filename }}" 
-                                   preload="metadata"
-                                   controls></video>
-                            <div class="video-info">
-                                <div class="video-name">{{ video.filename }}</div>
-                                <div class="video-meta">{{ video.size_mb }} MB</div>
-                                <div class="video-actions">
-                                    <a href="/download/{{ day.date }}/raw/{{ video.filename }}" class="btn btn-primary">Download</a>
-                                    <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', 'raw', '{{ video.filename }}')">Delete</button>
+                    
+                    <div class="video-category">
+                        <h4>Processed Videos</h4>
+                        {% if time_slot.processed %}
+                        <div class="video-grid">
+                            {% for video in time_slot.processed %}
+                            <div class="video-card">
+                                <video class="video-preview" 
+                                       src="/stream/{{ day.date }}/{{ time_slot.time }}/processed/{{ video.filename }}" 
+                                       preload="metadata"
+                                       controls></video>
+                                <div class="video-info">
+                                    <div class="video-name">{{ video.filename }}</div>
+                                    <div class="video-meta">{{ video.size_mb }} MB</div>
+                                    <div class="video-actions">
+                                        <a href="/download/{{ day.date }}/{{ time_slot.time }}/processed/{{ video.filename }}" class="btn btn-primary">Download</a>
+                                        <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', '{{ time_slot.time }}', 'processed', '{{ video.filename }}')">Delete</button>
+                                    </div>
                                 </div>
                             </div>
+                            {% endfor %}
                         </div>
-                        {% endfor %}
+                        {% else %}
+                        <div class="empty-state">Default processed version will appear shortly...</div>
+                        {% endif %}
                     </div>
-                    {% else %}
-                    <div class="empty-state">No raw videos</div>
-                    {% endif %}
                 </div>
+                {% endfor %}
             </div>
             {% endfor %}
         {% else %}
@@ -254,8 +382,127 @@
         {% endif %}
     </div>
     
+    <!-- Processing Modal -->
+    <div id="process-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Process Video</div>
+            
+            <div class="filter-group">
+                <label>
+                    <input type="checkbox" id="filter-deinterlace" checked>
+                    <span>Deinterlace</span>
+                </label>
+            </div>
+            
+            <div class="filter-group">
+                <label>
+                    <input type="checkbox" id="filter-denoise">
+                    <span>Video Denoise (removes grain/snow)</span>
+                </label>
+                <select id="denoise-level">
+                    <option value="light">Light</option>
+                    <option value="medium">Medium</option>
+                    <option value="heavy">Heavy</option>
+                </select>
+            </div>
+            
+            <div class="filter-group">
+                <label>
+                    <input type="checkbox" id="filter-audio">
+                    <span>Audio Cleanup (hum removal, noise reduction)</span>
+                </label>
+            </div>
+            
+            <div class="filter-group">
+                <label>
+                    <span>Brightness: <span class="range-value" id="brightness-value">0</span></span>
+                </label>
+                <input type="range" id="filter-brightness" min="-20" max="20" value="0" step="1">
+            </div>
+            
+            <div class="filter-group">
+                <label>
+                    <span>Saturation: <span class="range-value" id="saturation-value">100%</span></span>
+                </label>
+                <input type="range" id="filter-saturation" min="50" max="150" value="100" step="5">
+            </div>
+            
+            <div class="filter-group">
+                <label>
+                    <input type="checkbox" id="filter-sharpen">
+                    <span>Sharpen</span>
+                </label>
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn btn-success" onclick="startProcessing()">Start Processing</button>
+                <button class="btn btn-primary" onclick="closeProcessModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
     <script>
-        // update status every 2 seconds
+        let currentDate = '';
+        let currentTime = '';
+        let currentFilename = '';
+        
+        // update range value displays
+        document.getElementById('filter-brightness').addEventListener('input', function(e) {
+            document.getElementById('brightness-value').textContent = e.target.value;
+        });
+        
+        document.getElementById('filter-saturation').addEventListener('input', function(e) {
+            document.getElementById('saturation-value').textContent = e.target.value + '%';
+        });
+        
+        function showProcessModal(date, time, filename) {
+            currentDate = date;
+            currentTime = time;
+            currentFilename = filename;
+            document.getElementById('process-modal').classList.add('active');
+        }
+        
+        function closeProcessModal() {
+            document.getElementById('process-modal').classList.remove('active');
+        }
+        
+        async function startProcessing() {
+            const filters = {
+                deinterlace: document.getElementById('filter-deinterlace').checked,
+                denoise: document.getElementById('filter-denoise').checked,
+                denoise_level: document.getElementById('denoise-level').value,
+                audio_cleanup: document.getElementById('filter-audio').checked,
+                brightness: parseInt(document.getElementById('filter-brightness').value),
+                saturation: parseInt(document.getElementById('filter-saturation').value),
+                sharpen: document.getElementById('filter-sharpen').checked
+            };
+            
+            try {
+                const response = await fetch('/process', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        date: currentDate,
+                        time: currentTime,
+                        filename: currentFilename,
+                        filters: filters
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    alert('Processing started! The video will appear in "Processed Videos" when complete.');
+                    closeProcessModal();
+                    updateStatus();
+                } else {
+                    alert('Failed to start processing: ' + data.error);
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+        
         async function updateStatus() {
             try {
                 const response = await fetch('/status');
@@ -271,18 +518,28 @@
                     indicator.classList.remove('recording');
                     status.textContent = 'Ready';
                 }
+                
+                // show processing status
+                const processingDiv = document.getElementById('processing-status');
+                if (data.processing_jobs > 0) {
+                    processingDiv.style.display = 'flex';
+                    document.getElementById('processing-count').textContent = 
+                        data.processing_jobs + ' processing';
+                } else {
+                    processingDiv.style.display = 'none';
+                }
             } catch (e) {
                 console.error('failed to update status:', e);
             }
         }
         
-        async function deleteVideo(date, type, filename) {
+        async function deleteVideo(date, time, type, filename) {
             if (!confirm(`delete ${filename}?`)) {
                 return;
             }
             
             try {
-                const response = await fetch(`/delete/${date}/${type}/${filename}`, {
+                const response = await fetch(`/delete/${date}/${time}/${type}/${filename}`, {
                     method: 'POST'
                 });
                 const data = await response.json();
@@ -296,6 +553,13 @@
                 alert('failed to delete: ' + e.message);
             }
         }
+        
+        // close modal when clicking outside
+        document.getElementById('process-modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeProcessModal();
+            }
+        });
         
         // initial status update
         updateStatus();
