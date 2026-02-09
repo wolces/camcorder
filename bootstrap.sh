@@ -43,7 +43,8 @@ apt-get install -y \
     python3-pip \
     python3-gpiozero \
     ffmpeg \
-    v4l-utils
+    v4l-utils \
+    iptables
 
 # stop conflicting services
 systemctl stop dnsmasq 2>/dev/null || true

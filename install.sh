@@ -32,7 +32,8 @@ apt-get install -y \
     git \
     ffmpeg \
     v4l-utils \
-    python3-gpiozero
+    python3-gpiozero \
+    iptables
 
 # stop services that might interfere
 echo "stopping conflicting services..."
