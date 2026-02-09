@@ -18,22 +18,23 @@ button = Button(BUTTON_PIN, pull_up=True, hold_time=3)
 led = LED(LED_PIN)
 
 recording_process = None
-current_recording_filename = None
-current_date_dir = None
+current_recording_info = None
 
-def get_date_directory():
-    """Get or create directory for today's date"""
-    today = datetime.date.today()
-    date_dir = os.path.join(OUTPUT_DIR, today.strftime("%Y-%m-%d"))
+def get_time_directory():
+    """Get or create directory for current date and time"""
+    now = datetime.datetime.now()
+    date_str = now.strftime("%Y-%m-%d")
+    time_str = now.strftime("%H-%M")
     
-    # Create date directory and subdirectories
-    raw_dir = os.path.join(date_dir, "raw")
-    deinterlaced_dir = os.path.join(date_dir, "deinterlaced")
+    date_dir = os.path.join(OUTPUT_DIR, date_str)
+    time_dir = os.path.join(date_dir, time_str)
+    raw_dir = os.path.join(time_dir, "raw")
+    processed_dir = os.path.join(time_dir, "processed")
     
     os.makedirs(raw_dir, exist_ok=True)
-    os.makedirs(deinterlaced_dir, exist_ok=True)
+    os.makedirs(processed_dir, exist_ok=True)
     
-    return date_dir, raw_dir, deinterlaced_dir
+    return time_dir, raw_dir, processed_dir
 
 def configure_device():
     """
@@ -43,53 +44,73 @@ def configure_device():
     try:
         # 1. Force NTSC Standard
         subprocess.run(["/usr/bin/v4l2-ctl", "-d", VIDEO_DEVICE, "-s", "ntsc"])
-        time.sleep(0.5) # Allow firmware to settle
+        time.sleep(0.3) # Allow firmware to settle
         
         # 2. Force Input 1 (S-Video)
         subprocess.run(["/usr/bin/v4l2-ctl", "-d", VIDEO_DEVICE, "-i", "1"])
-        time.sleep(0.5) # Allow signal lock
+        time.sleep(0.3) # Allow signal lock
         
     except Exception as e:
         print(f"Hardware setup warning: {e}")
 
-def transcode_background(input_path, output_dir):
+def process_with_defaults(input_path, output_dir):
     """
-    Launches a detached FFmpeg process to deinterlace the video.
+    Process video with default settings:
+    - Deinterlacing (bwdif)
+    - High-pass filter @ 80Hz
+    - Noise reduction (anlmdn)
+    - Loudness normalization
     """
     filename = os.path.basename(input_path)
-    output_path = os.path.join(output_dir, filename)
+    base_name = filename.replace('.mp4', '')
+    output_filename = f"{base_name}_default.mp4"
+    output_path = os.path.join(output_dir, output_filename)
     
-    print(f"Queueing background transcode: {output_path}")
+    print(f"Starting default processing: {output_path}")
+    
+    # Video filters: deinterlace only
+    vf = "setfield=tff,bwdif=1"
+    
+    # Audio filters: highpass, noise reduction, normalization
+    af = "highpass=f=80,anlmdn=s=0.0001,loudnorm"
     
     cmd = [
         "nice", "-n", "10",
         "/usr/bin/ffmpeg", "-y",
         "-i", input_path,
-        "-vf", "setfield=tff,bwdif=1", 
+        "-vf", vf,
+        "-af", af,
         "-c:v", "libx264",
-        "-preset", "superfast",
-        "-crf", "23",
+        "-preset", "medium",
+        "-crf", "18",
         "-aspect", "4:3",
-        "-c:a", "copy",
+        "-c:a", "aac",
+        "-b:a", "192k",
         output_path
     ]
     
     subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def start_recording():
-    global recording_process, current_recording_filename, current_date_dir
+    global recording_process, current_recording_info
     
     # Run setup immediately before recording
     configure_device()
     
-    # Get today's directory structure
-    date_dir, raw_dir, deinterlaced_dir = get_date_directory()
-    current_date_dir = (date_dir, raw_dir, deinterlaced_dir)
+    # Get time-based directory structure
+    time_dir, raw_dir, processed_dir = get_time_directory()
     
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    current_recording_filename = os.path.join(raw_dir, f"record_{timestamp}.mp4")
+    filename = f"record_{timestamp}.mp4"
+    filepath = os.path.join(raw_dir, filename)
     
-    print(f"Starting archival recording: {current_recording_filename}")
+    current_recording_info = {
+        'filepath': filepath,
+        'processed_dir': processed_dir,
+        'time_dir': time_dir
+    }
+    
+    print(f"Starting archival recording: {filepath}")
 
     cmd = [
         "/usr/bin/ffmpeg", "-y",
@@ -107,7 +128,7 @@ def start_recording():
         "-b:a", "192k",
         "-ac", "2",
         "-af", "aresample=async=1:min_hard_comp=0.100000:first_pts=0",
-        current_recording_filename
+        filepath
     ]
     
     devnull = open(os.devnull, 'w')
@@ -115,7 +136,7 @@ def start_recording():
     led.on()
 
 def stop_recording():
-    global recording_process, current_recording_filename, current_date_dir
+    global recording_process, current_recording_info
     
     if recording_process:
         print("Stopping recording...")
@@ -129,13 +150,14 @@ def stop_recording():
         led.off()
         print("Recording stopped.")
         
-        # Trigger the async deinterlace
-        if current_recording_filename and os.path.exists(current_recording_filename):
-            _, _, deinterlaced_dir = current_date_dir
-            transcode_background(current_recording_filename, deinterlaced_dir)
+        # Start automatic default processing
+        if current_recording_info and os.path.exists(current_recording_info['filepath']):
+            process_with_defaults(
+                current_recording_info['filepath'],
+                current_recording_info['processed_dir']
+            )
         
-        current_recording_filename = None
-        current_date_dir = None
+        current_recording_info = None
 
 def toggle_recording():
     if recording_process is None:
@@ -154,5 +176,6 @@ def safe_shutdown():
 button.when_pressed = toggle_recording
 button.when_held = safe_shutdown
 
-print("System Ready. Videos organized by date in ~/Videos/")
+print("System Ready. Videos organized by date/time in ~/Videos/")
+print("Default processing (deinterlace + audio cleanup) applied automatically")
 pause()
