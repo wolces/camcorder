@@ -69,6 +69,7 @@ def transcode_background(input_path, output_dir):
         "-c:v", "libx264",
         "-preset", "superfast",
         "-crf", "23",
+        "-aspect", "4:3",
         "-c:a", "copy",
         output_path
     ]
@@ -100,6 +101,7 @@ def start_recording():
         "-c:v", "libx264",
         "-crf", "16",
         "-pix_fmt", "yuv422p",
+        "-aspect", "4:3",
         "-preset", "superfast",
         "-c:a", "aac",
         "-b:a", "192k",
