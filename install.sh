@@ -99,9 +99,21 @@ cp $USER_HOME/web_server.service /etc/systemd/system/
 cp $USER_HOME/wifi_ap.service /etc/systemd/system/
 cp $USER_HOME/auto_update.service /etc/systemd/system/
 
-# create templates directory
+# create templates directory if it doesn't exist
+echo "verifying templates directory..."
 mkdir -p $USER_HOME/templates
 chown $ACTUAL_USER:$ACTUAL_USER $USER_HOME/templates
+
+# check if index.html is in the right place
+if [ -f "$USER_HOME/index.html" ] && [ ! -f "$USER_HOME/templates/index.html" ]; then
+    echo "  - moving index.html into templates directory..."
+    mv "$USER_HOME/index.html" "$USER_HOME/templates/"
+fi
+
+if [ ! -f "$USER_HOME/templates/index.html" ]; then
+    echo "  - WARNING: templates/index.html not found!"
+    echo "    Make sure index.html is in the templates/ directory in your git repo"
+fi
 
 # reload systemd
 echo "reloading systemd..."

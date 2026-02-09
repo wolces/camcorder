@@ -1,18 +1,16 @@
 #!/bin/bash
 # bootstrap script - sets up camcorder system on a fresh raspberry pi
 # can be run on any fresh raspberry pi os installation
-# usage: curl -sSL https://raw.githubusercontent.com/wolces/camcorder/refs/heads/main/bootstrap.sh | sudo bash
-
+# usage: curl -sSL https://raw.githubusercontent.com/YOUR_REPO/main/bootstrap.sh | sudo bash
 
 set -e
 
-# configuration
+# configuration - EDIT THESE
 GIT_REPO="https://github.com/wolces/camcorder.git"
 GIT_BRANCH="main"
 INSTALL_USER="camcorder"
 WIFI_SSID="Camcorder"
 WIFI_PASSWORD="recording"
-
 
 echo "=== camcorder system bootstrap ==="
 echo ""
@@ -90,10 +88,19 @@ else
     echo "cloning $GIT_REPO into $USER_HOME..."
     sudo -u "$INSTALL_USER" git clone "$GIT_REPO" "$TEMP_CLONE"
     
-    # move contents from temp clone to home
+    # move contents from temp clone to home (using rsync to preserve structure)
+    # first move .git
     mv "$TEMP_CLONE"/.git "$USER_HOME"/ 
-    mv "$TEMP_CLONE"/* "$USER_HOME"/ 2>/dev/null || true
-    mv "$TEMP_CLONE"/.[!.]* "$USER_HOME"/ 2>/dev/null || true
+    
+    # then copy everything else, preserving directory structure
+    if command -v rsync &> /dev/null; then
+        rsync -a "$TEMP_CLONE"/ "$USER_HOME"/ --exclude=.git
+    else
+        # fallback to cp if rsync not available
+        cp -r "$TEMP_CLONE"/* "$USER_HOME"/ 2>/dev/null || true
+        cp -r "$TEMP_CLONE"/.[!.]* "$USER_HOME"/ 2>/dev/null || true
+    fi
+    
     rm -rf "$TEMP_CLONE"
     
     # fix ownership
