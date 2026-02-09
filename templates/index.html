@@ -125,7 +125,7 @@
         
         .video-preview {
             width: 100%;
-            aspect-ratio: 16/9;
+            aspect-ratio: 4/3;
             background: #000;
         }
         
@@ -189,6 +189,20 @@
             background: #c82333;
         }
         
+        .btn-secondary {
+            background: #555;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #666;
+        }
+        
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 11px;
+        }
+        
         .empty-state {
             text-align: center;
             padding: 20px;
@@ -196,7 +210,9 @@
             font-size: 13px;
         }
         
-        /* Modal styles */
+        /* ============================================
+           processing modal
+           ============================================ */
         .modal {
             display: none;
             position: fixed;
@@ -205,82 +221,303 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.7);
+            background-color: rgba(0,0,0,0.8);
+            overflow-y: auto;
         }
         
         .modal.active {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: center;
+            padding: 20px;
         }
         
         .modal-content {
-            background: #2a2a2a;
-            border-radius: 8px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 90vh;
+            background: #222;
+            border-radius: 10px;
+            max-width: 1100px;
+            width: 100%;
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            max-height: calc(100vh - 40px);
+        }
+        
+        .modal-top {
+            padding: 24px 28px 16px;
+            border-bottom: 1px solid #333;
+            flex-shrink: 0;
+        }
+        
+        .modal-title {
+            font-size: 22px;
+            font-weight: 600;
+        }
+        
+        .modal-subtitle {
+            font-size: 13px;
+            color: #888;
+            margin-top: 4px;
+        }
+        
+        .modal-body {
+            display: flex;
+            gap: 0;
+            overflow: hidden;
+            flex: 1;
+            min-height: 0;
+        }
+        
+        /* --- controls panel (left side) --- */
+        .controls-panel {
+            flex: 1;
             overflow-y: auto;
+            padding: 20px 28px;
+            border-right: 1px solid #333;
+            min-width: 0;
         }
         
-        .modal-header {
-            font-size: 20px;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #444;
+        .control-section {
+            margin-bottom: 24px;
         }
         
-        .filter-group {
-            margin-bottom: 20px;
-        }
-        
-        .filter-group label {
+        .section-header {
             display: flex;
             align-items: center;
             gap: 10px;
-            margin-bottom: 10px;
+            margin-bottom: 14px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .section-toggle {
+            width: 38px;
+            height: 20px;
+            border-radius: 10px;
+            background: #444;
+            position: relative;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .section-toggle.active {
+            background: #28a745;
+        }
+        
+        .section-toggle::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+        
+        .section-toggle.active::after {
+            transform: translateX(18px);
+        }
+        
+        .section-label {
+            font-size: 14px;
+            font-weight: 600;
+            flex: 1;
+        }
+        
+        .section-body {
+            padding-left: 48px;
+            display: none;
+        }
+        
+        .section-body.visible {
+            display: block;
+        }
+        
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        
+        .control-label {
+            font-size: 12px;
+            color: #aaa;
+            min-width: 90px;
+            flex-shrink: 0;
+        }
+        
+        .control-input {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .control-value {
+            font-size: 12px;
+            color: #ccc;
+            min-width: 48px;
+            text-align: right;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #444;
+            outline: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
             cursor: pointer;
         }
         
-        .filter-group input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-            cursor: pointer;
-        }
-        
-        .filter-group input[type="range"] {
+        select {
             width: 100%;
-            margin-top: 5px;
-        }
-        
-        .filter-group select {
-            width: 100%;
-            padding: 8px;
-            background: #1a1a1a;
-            border: 1px solid #444;
+            padding: 6px 8px;
+            background: #333;
+            border: 1px solid #555;
             color: #fff;
             border-radius: 4px;
-            margin-top: 5px;
+            font-size: 12px;
         }
         
-        .range-value {
-            display: inline-block;
-            min-width: 40px;
-            text-align: right;
+        .control-hint {
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+        }
+        
+        .divider {
+            height: 1px;
+            background: #333;
+            margin: 20px 0;
+        }
+        
+        /* --- preview panel (right side) --- */
+        .preview-panel {
+            width: 420px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        
+        .preview-box {
+            position: relative;
+            background: #111;
+            border-radius: 6px;
+            overflow: hidden;
+            aspect-ratio: 4/3;
+            margin-bottom: 12px;
+        }
+        
+        .preview-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+        
+        .preview-loading {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.6);
+            font-size: 13px;
+            color: #aaa;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+        }
+        
+        .preview-loading.visible {
+            opacity: 1;
+        }
+        
+        .preview-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        
+        .preview-controls label {
+            font-size: 12px;
             color: #aaa;
         }
         
-        .modal-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 25px;
-            padding-top: 20px;
-            border-top: 1px solid #444;
+        .preview-controls input[type="range"] {
+            flex: 1;
         }
         
-        .modal-actions button {
+        .preview-toggle-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .preview-toggle-row button {
             flex: 1;
+            font-size: 11px;
+            padding: 6px 8px;
+        }
+        
+        .preview-toggle-row button.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .preview-toggle-row button:not(.active) {
+            background: #333;
+            color: #aaa;
+        }
+        
+        .preview-info {
+            font-size: 11px;
+            color: #666;
+            line-height: 1.5;
+        }
+        
+        /* --- modal footer --- */
+        .modal-footer {
+            padding: 16px 28px;
+            border-top: 1px solid #333;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-shrink: 0;
+        }
+        
+        .modal-footer button {
+            min-width: 120px;
+        }
+        
+        /* ============================================
+           responsive
+           ============================================ */
+        @media (max-width: 900px) {
+            .modal-body {
+                flex-direction: column;
+            }
+            .preview-panel {
+                width: 100%;
+                border-top: 1px solid #333;
+            }
+            .controls-panel {
+                border-right: none;
+            }
         }
         
         @media (max-width: 768px) {
@@ -382,100 +619,732 @@
         {% endif %}
     </div>
     
-    <!-- Processing Modal -->
+    <!-- =============================================
+         processing modal
+         ============================================= -->
     <div id="process-modal" class="modal">
         <div class="modal-content">
-            <div class="modal-header">Process Video</div>
-            
-            <div class="filter-group">
-                <label>
-                    <input type="checkbox" id="filter-deinterlace" checked>
-                    <span>Deinterlace</span>
-                </label>
+            <div class="modal-top">
+                <div class="modal-title">Process Video</div>
+                <div class="modal-subtitle" id="modal-filename"></div>
             </div>
             
-            <div class="filter-group">
-                <label>
-                    <input type="checkbox" id="filter-denoise">
-                    <span>Video Denoise (removes grain/snow)</span>
-                </label>
-                <select id="denoise-level">
-                    <option value="light">Light</option>
-                    <option value="medium">Medium</option>
-                    <option value="heavy">Heavy</option>
-                </select>
+            <div class="modal-body">
+                <!-- controls panel -->
+                <div class="controls-panel">
+                    
+                    <!-- deinterlace -->
+                    <div class="control-section">
+                        <div class="section-header" onclick="toggleSection('deinterlace')">
+                            <div class="section-toggle active" id="toggle-deinterlace"></div>
+                            <span class="section-label">Deinterlace</span>
+                        </div>
+                        <div class="section-body visible" id="body-deinterlace">
+                            <div class="control-row">
+                                <span class="control-label">Method</span>
+                                <div class="control-input">
+                                    <select id="deinterlace-method" onchange="schedulePreview()">
+                                        <option value="bwdif">BWDIF (bob weaver — best quality)</option>
+                                        <option value="yadif">Yadif (yet another — fast)</option>
+                                        <option value="estdif">ESTDIF (edge slope — good motion)</option>
+                                        <option value="kerndeint">Kerndeint (kernel — lightweight)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-row" id="yadif-mode-row" style="display:none;">
+                                <span class="control-label">Yadif mode</span>
+                                <div class="control-input">
+                                    <select id="yadif-mode" onchange="schedulePreview()">
+                                        <option value="1">Field output (60fps — smoother)</option>
+                                        <option value="0">Frame output (30fps — smaller file)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- denoise -->
+                    <div class="control-section">
+                        <div class="section-header" onclick="toggleSection('denoise')">
+                            <div class="section-toggle" id="toggle-denoise"></div>
+                            <span class="section-label">Denoise</span>
+                        </div>
+                        <div class="section-body" id="body-denoise">
+                            <div class="control-row">
+                                <span class="control-label">Spatial</span>
+                                <div class="control-input">
+                                    <input type="range" id="denoise-spatial" min="0.5" max="12" value="3" step="0.5" oninput="updateValue(this); schedulePreview()">
+                                </div>
+                                <span class="control-value" id="val-denoise-spatial">3.0</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px; margin-bottom:8px;">Removes grain within each frame. Higher = smoother but may lose fine detail.</div>
+                            <div class="control-row">
+                                <span class="control-label">Temporal</span>
+                                <div class="control-input">
+                                    <input type="range" id="denoise-temporal" min="1" max="16" value="6" step="0.5" oninput="updateValue(this); schedulePreview()">
+                                </div>
+                                <span class="control-value" id="val-denoise-temporal">6.0</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px;">Smooths noise across consecutive frames. Higher = less flicker but may ghost on motion.</div>
+                        </div>
+                    </div>
+                    
+                    <!-- white balance -->
+                    <div class="control-section">
+                        <div class="section-header" onclick="toggleSection('whitebalance')">
+                            <div class="section-toggle" id="toggle-whitebalance"></div>
+                            <span class="section-label">White Balance</span>
+                        </div>
+                        <div class="section-body" id="body-whitebalance">
+                            <div class="control-row">
+                                <span class="control-label">Temperature</span>
+                                <div class="control-input">
+                                    <input type="range" id="color-temp" min="-50" max="50" value="0" step="1" oninput="updateValue(this); schedulePreview()">
+                                </div>
+                                <span class="control-value" id="val-color-temp">0</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px; margin-bottom:8px;">← cooler (blue) · warmer (amber) →</div>
+                            <div class="control-row">
+                                <span class="control-label">Tint</span>
+                                <div class="control-input">
+                                    <input type="range" id="color-tint" min="-50" max="50" value="0" step="1" oninput="updateValue(this); schedulePreview()">
+                                </div>
+                                <span class="control-value" id="val-color-tint">0</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px;">← green · magenta →</div>
+                        </div>
+                    </div>
+                    
+                    <!-- image adjustments -->
+                    <div class="control-section">
+                        <div class="section-header" onclick="toggleSection('image')">
+                            <div class="section-toggle" id="toggle-image"></div>
+                            <span class="section-label">Image Adjustments</span>
+                        </div>
+                        <div class="section-body" id="body-image">
+                            <div class="control-row">
+                                <span class="control-label">Brightness</span>
+                                <div class="control-input">
+                                    <input type="range" id="brightness" min="-30" max="30" value="0" step="1" oninput="updateValue(this); schedulePreview()">
+                                </div>
+                                <span class="control-value" id="val-brightness">0</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Contrast</span>
+                                <div class="control-input">
+                                    <input type="range" id="contrast" min="50" max="200" value="100" step="5" oninput="updateValuePct(this); schedulePreview()">
+                                </div>
+                                <span class="control-value" id="val-contrast">100%</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Saturation</span>
+                                <div class="control-input">
+                                    <input type="range" id="saturation" min="0" max="200" value="100" step="5" oninput="updateValuePct(this); schedulePreview()">
+                                </div>
+                                <span class="control-value" id="val-saturation">100%</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Gamma</span>
+                                <div class="control-input">
+                                    <input type="range" id="gamma" min="50" max="200" value="100" step="5" oninput="updateValuePct(this); schedulePreview()">
+                                </div>
+                                <span class="control-value" id="val-gamma">100%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- sharpen -->
+                    <div class="control-section">
+                        <div class="section-header" onclick="toggleSection('sharpen')">
+                            <div class="section-toggle" id="toggle-sharpen"></div>
+                            <span class="section-label">Sharpen</span>
+                        </div>
+                        <div class="section-body" id="body-sharpen">
+                            <div class="control-row">
+                                <span class="control-label">Luma strength</span>
+                                <div class="control-input">
+                                    <input type="range" id="sharpen-luma" min="0.1" max="3.0" value="0.8" step="0.1" oninput="updateValue(this); schedulePreview()">
+                                </div>
+                                <span class="control-value" id="val-sharpen-luma">0.8</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Chroma strength</span>
+                                <div class="control-input">
+                                    <input type="range" id="sharpen-chroma" min="0.0" max="2.0" value="0.4" step="0.1" oninput="updateValue(this); schedulePreview()">
+                                </div>
+                                <span class="control-value" id="val-sharpen-chroma">0.4</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- crop / aspect -->
+                    <div class="control-section">
+                        <div class="section-header" onclick="toggleSection('crop')">
+                            <div class="section-toggle" id="toggle-crop"></div>
+                            <span class="section-label">Crop / Aspect Ratio</span>
+                        </div>
+                        <div class="section-body" id="body-crop">
+                            <div class="control-row">
+                                <span class="control-label">Crop to</span>
+                                <div class="control-input">
+                                    <select id="crop-mode" onchange="schedulePreview()">
+                                        <option value="none">No crop</option>
+                                        <option value="4:3">4:3 (standard)</option>
+                                        <option value="16:9">16:9 (widescreen)</option>
+                                        <option value="1:1">1:1 (square)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Output aspect</span>
+                                <div class="control-input">
+                                    <select id="output-aspect">
+                                        <option value="4:3" selected>4:3</option>
+                                        <option value="16:9">16:9</option>
+                                        <option value="auto">Auto (from source)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="divider"></div>
+                    
+                    <!-- audio cleanup -->
+                    <div class="control-section">
+                        <div class="section-header" onclick="toggleSection('audio')">
+                            <div class="section-toggle" id="toggle-audio"></div>
+                            <span class="section-label">Audio Cleanup</span>
+                        </div>
+                        <div class="section-body" id="body-audio">
+                            <div class="control-row">
+                                <span class="control-label">Highpass</span>
+                                <div class="control-input">
+                                    <input type="range" id="highpass-freq" min="0" max="200" value="80" step="10" oninput="updateValueHz(this)">
+                                </div>
+                                <span class="control-value" id="val-highpass-freq">80 Hz</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px; margin-bottom:8px;">Cuts rumble and low-frequency noise. 60–100 Hz is typical.</div>
+                            <div class="control-row">
+                                <span class="control-label">Lowpass</span>
+                                <div class="control-input">
+                                    <input type="range" id="lowpass-freq" min="0" max="20000" value="0" step="500" oninput="updateValueHz(this)">
+                                </div>
+                                <span class="control-value" id="val-lowpass-freq">Off</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px; margin-bottom:8px;">Cuts high-frequency hiss. 0 = off. Try 12000–16000 for mild hiss removal.</div>
+                            <div class="control-row">
+                                <span class="control-label">Noise reduction</span>
+                                <div class="control-input">
+                                    <input type="range" id="noise-reduction" min="0" max="0.01" value="0.0001" step="0.0001" oninput="updateValueNr(this)">
+                                </div>
+                                <span class="control-value" id="val-noise-reduction">0.0001</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px; margin-bottom:8px;">Non-local means denoiser strength. Higher = more aggressive. 0 = off.</div>
+                            <div class="control-row">
+                                <span class="control-label">De-hum</span>
+                                <div class="control-input">
+                                    <select id="dehum-mode" onchange="toggleDehumFreq()">
+                                        <option value="off">Off</option>
+                                        <option value="on">On (notch filter + harmonics)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-row" id="dehum-freq-row" style="display:none;">
+                                <span class="control-label">Hum frequency</span>
+                                <div class="control-input">
+                                    <select id="dehum-freq">
+                                        <option value="60" selected>60 Hz (North America / NTSC)</option>
+                                        <option value="50">50 Hz (Europe / PAL)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Normalize</span>
+                                <div class="control-input">
+                                    <select id="loudnorm-mode">
+                                        <option value="on" selected>Loudness normalization (EBU R128)</option>
+                                        <option value="off">Off</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Audio bitrate</span>
+                                <div class="control-input">
+                                    <select id="audio-bitrate">
+                                        <option value="128">128 kbps</option>
+                                        <option value="192" selected>192 kbps</option>
+                                        <option value="256">256 kbps</option>
+                                        <option value="320">320 kbps</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="divider"></div>
+                    
+                    <!-- encoding / output settings -->
+                    <div class="control-section">
+                        <div class="section-header" style="cursor:default;">
+                            <span class="section-label">🎞️ Encoding / Output</span>
+                        </div>
+                        <div class="section-body visible" style="padding-left:0;">
+                            <div class="control-row">
+                                <span class="control-label">Quality mode</span>
+                                <div class="control-input">
+                                    <select id="quality-mode" onchange="toggleQualityMode()">
+                                        <option value="crf" selected>CRF (constant quality)</option>
+                                        <option value="bitrate">Target bitrate</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-row" id="crf-row">
+                                <span class="control-label">CRF</span>
+                                <div class="control-input">
+                                    <input type="range" id="crf-value" min="10" max="35" value="20" step="1" oninput="updateCrf(this)">
+                                </div>
+                                <span class="control-value" id="val-crf-value">20</span>
+                            </div>
+                            <div class="control-hint" id="crf-hint" style="margin-left:90px; margin-bottom:8px;">Lower = better quality / bigger file. 16 = archival, 20 = good, 24 = smaller, 28+ = low quality.</div>
+                            <div class="control-row" id="bitrate-row" style="display:none;">
+                                <span class="control-label">Bitrate</span>
+                                <div class="control-input">
+                                    <input type="range" id="target-bitrate" min="500" max="20000" value="5000" step="500" oninput="updateBitrate(this)">
+                                </div>
+                                <span class="control-value" id="val-target-bitrate">5000 kbps</span>
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Preset</span>
+                                <div class="control-input">
+                                    <select id="encode-preset">
+                                        <option value="ultrafast">Ultrafast (lowest quality, fastest)</option>
+                                        <option value="superfast">Superfast</option>
+                                        <option value="veryfast">Very fast</option>
+                                        <option value="fast">Fast</option>
+                                        <option value="medium" selected>Medium (balanced)</option>
+                                        <option value="slow">Slow (better compression)</option>
+                                        <option value="slower">Slower</option>
+                                        <option value="veryslow">Very slow (best compression, slowest)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Pixel format</span>
+                                <div class="control-input">
+                                    <select id="pix-fmt">
+                                        <option value="yuv420p" selected>yuv420p (widely compatible)</option>
+                                        <option value="yuv422p">yuv422p (better chroma, larger)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                </div>
+                
+                <!-- preview panel -->
+                <div class="preview-panel">
+                    <div class="preview-box">
+                        <img class="preview-img" id="preview-img" alt="Preview" src="">
+                        <div class="preview-loading" id="preview-loading">Generating preview…</div>
+                    </div>
+                    
+                    <div class="preview-controls">
+                        <label>Seek</label>
+                        <input type="range" id="preview-seek" min="0" max="60" value="2" step="1" oninput="updateSeekLabel(this); schedulePreview()">
+                        <span class="control-value" id="val-preview-seek">0:02</span>
+                    </div>
+                    
+                    <div class="preview-toggle-row">
+                        <button class="btn btn-sm" id="preview-btn-filtered" onclick="setPreviewMode('filtered')">Filtered</button>
+                        <button class="btn btn-sm active" id="preview-btn-compare" onclick="setPreviewMode('compare')">Compare</button>
+                        <button class="btn btn-sm" id="preview-btn-original" onclick="setPreviewMode('original')">Original</button>
+                    </div>
+                    
+                    <div class="preview-info">
+                        Preview renders a single frame through the actual ffmpeg filter chain on the Pi. 
+                        Adjust filters on the left and the preview will update automatically. 
+                        Use the seek slider to pick which frame to preview.
+                    </div>
+                </div>
             </div>
             
-            <div class="filter-group">
-                <label>
-                    <input type="checkbox" id="filter-audio">
-                    <span>Audio Cleanup (hum removal, noise reduction)</span>
-                </label>
-            </div>
-            
-            <div class="filter-group">
-                <label>
-                    <span>Brightness: <span class="range-value" id="brightness-value">0</span></span>
-                </label>
-                <input type="range" id="filter-brightness" min="-20" max="20" value="0" step="1">
-            </div>
-            
-            <div class="filter-group">
-                <label>
-                    <span>Saturation: <span class="range-value" id="saturation-value">100%</span></span>
-                </label>
-                <input type="range" id="filter-saturation" min="50" max="150" value="100" step="5">
-            </div>
-            
-            <div class="filter-group">
-                <label>
-                    <input type="checkbox" id="filter-sharpen">
-                    <span>Sharpen</span>
-                </label>
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn btn-success" onclick="startProcessing()">Start Processing</button>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="resetFilters()">Reset All</button>
                 <button class="btn btn-primary" onclick="closeProcessModal()">Cancel</button>
+                <button class="btn btn-success" onclick="startProcessing()">Start Processing</button>
             </div>
         </div>
     </div>
     
     <script>
+        /* =============================================
+           state
+           ============================================= */
         let currentDate = '';
         let currentTime = '';
         let currentFilename = '';
+        let previewTimer = null;
+        let previewMode = 'compare';  // 'filtered', 'original', 'compare'
+        let previewOriginalUrl = '';
+        let previewFilteredUrl = '';
+        let previewShowingOriginal = false;
+        let compareInterval = null;
         
-        // update range value displays
-        document.getElementById('filter-brightness').addEventListener('input', function(e) {
-            document.getElementById('brightness-value').textContent = e.target.value;
+        const sectionStates = {
+            deinterlace: true,
+            denoise: false,
+            whitebalance: false,
+            image: false,
+            sharpen: false,
+            crop: false,
+            audio: false
+        };
+        
+        /* =============================================
+           section toggles
+           ============================================= */
+        function toggleSection(name) {
+            sectionStates[name] = !sectionStates[name];
+            const toggle = document.getElementById('toggle-' + name);
+            const body = document.getElementById('body-' + name);
+            
+            if (sectionStates[name]) {
+                toggle.classList.add('active');
+                body.classList.add('visible');
+            } else {
+                toggle.classList.remove('active');
+                body.classList.remove('visible');
+            }
+            schedulePreview();
+        }
+        
+        /* =============================================
+           value display helpers
+           ============================================= */
+        function updateValue(el) {
+            const display = document.getElementById('val-' + el.id);
+            if (display) display.textContent = parseFloat(el.value).toFixed(1);
+        }
+        
+        function updateValuePct(el) {
+            const display = document.getElementById('val-' + el.id);
+            if (display) display.textContent = el.value + '%';
+        }
+        
+        function updateValueHz(el) {
+            const display = document.getElementById('val-' + el.id);
+            if (display) {
+                const v = parseInt(el.value);
+                display.textContent = v === 0 ? 'Off' : v + ' Hz';
+            }
+        }
+        
+        function updateValueNr(el) {
+            const display = document.getElementById('val-' + el.id);
+            if (display) display.textContent = parseFloat(el.value).toFixed(4);
+        }
+        
+        function updateCrf(el) {
+            document.getElementById('val-crf-value').textContent = el.value;
+        }
+        
+        function updateBitrate(el) {
+            document.getElementById('val-target-bitrate').textContent = el.value + ' kbps';
+        }
+        
+        function updateSeekLabel(el) {
+            const s = parseInt(el.value);
+            const m = Math.floor(s / 60);
+            const sec = s % 60;
+            document.getElementById('val-preview-seek').textContent = m + ':' + String(sec).padStart(2, '0');
+        }
+        
+        function toggleQualityMode() {
+            const mode = document.getElementById('quality-mode').value;
+            document.getElementById('crf-row').style.display = mode === 'crf' ? 'flex' : 'none';
+            document.getElementById('crf-hint').style.display = mode === 'crf' ? 'block' : 'none';
+            document.getElementById('bitrate-row').style.display = mode === 'bitrate' ? 'flex' : 'none';
+        }
+        
+        function toggleDehumFreq() {
+            const on = document.getElementById('dehum-mode').value === 'on';
+            document.getElementById('dehum-freq-row').style.display = on ? 'flex' : 'none';
+        }
+        
+        // show yadif mode when yadif is selected
+        document.getElementById('deinterlace-method').addEventListener('change', function() {
+            document.getElementById('yadif-mode-row').style.display = this.value === 'yadif' ? 'flex' : 'none';
         });
         
-        document.getElementById('filter-saturation').addEventListener('input', function(e) {
-            document.getElementById('saturation-value').textContent = e.target.value + '%';
-        });
+        /* =============================================
+           collect filters
+           ============================================= */
+        function collectFilters() {
+            const f = {};
+            
+            // deinterlace
+            f.deinterlace = sectionStates.deinterlace;
+            f.deinterlace_method = document.getElementById('deinterlace-method').value;
+            if (f.deinterlace_method === 'yadif') {
+                f.deinterlace_mode = document.getElementById('yadif-mode').value;
+            }
+            
+            // denoise
+            f.denoise = sectionStates.denoise;
+            f.denoise_spatial = parseFloat(document.getElementById('denoise-spatial').value);
+            f.denoise_temporal = parseFloat(document.getElementById('denoise-temporal').value);
+            
+            // white balance
+            if (sectionStates.whitebalance) {
+                f.color_temp = parseInt(document.getElementById('color-temp').value);
+                f.tint = parseInt(document.getElementById('color-tint').value);
+            } else {
+                f.color_temp = 0;
+                f.tint = 0;
+            }
+            
+            // image adjustments
+            if (sectionStates.image) {
+                f.brightness = parseInt(document.getElementById('brightness').value);
+                f.contrast = parseInt(document.getElementById('contrast').value);
+                f.saturation = parseInt(document.getElementById('saturation').value);
+                f.gamma = parseInt(document.getElementById('gamma').value);
+            } else {
+                f.brightness = 0;
+                f.contrast = 100;
+                f.saturation = 100;
+                f.gamma = 100;
+            }
+            
+            // sharpen
+            f.sharpen = sectionStates.sharpen;
+            f.sharpen_luma = parseFloat(document.getElementById('sharpen-luma').value);
+            f.sharpen_chroma = parseFloat(document.getElementById('sharpen-chroma').value);
+            
+            // crop
+            if (sectionStates.crop) {
+                f.crop = document.getElementById('crop-mode').value;
+                f.aspect = document.getElementById('output-aspect').value;
+            } else {
+                f.crop = 'none';
+                f.aspect = '4:3';
+            }
+            
+            // audio
+            f.audio_cleanup = sectionStates.audio;
+            f.highpass_freq = parseInt(document.getElementById('highpass-freq').value);
+            f.lowpass_freq = parseInt(document.getElementById('lowpass-freq').value);
+            f.noise_reduction = parseFloat(document.getElementById('noise-reduction').value);
+            f.dehum = document.getElementById('dehum-mode').value === 'on';
+            f.dehum_freq = parseInt(document.getElementById('dehum-freq').value);
+            f.loudnorm = document.getElementById('loudnorm-mode').value === 'on';
+            f.audio_bitrate = parseInt(document.getElementById('audio-bitrate').value);
+            
+            // encoding
+            f.quality_mode = document.getElementById('quality-mode').value;
+            f.crf = parseInt(document.getElementById('crf-value').value);
+            f.target_bitrate = parseInt(document.getElementById('target-bitrate').value);
+            f.preset = document.getElementById('encode-preset').value;
+            f.pix_fmt = document.getElementById('pix-fmt').value;
+            
+            return f;
+        }
         
+        /* =============================================
+           preview
+           ============================================= */
+        function schedulePreview() {
+            clearTimeout(previewTimer);
+            previewTimer = setTimeout(fetchPreview, 400);
+        }
+        
+        async function fetchPreview() {
+            const seek = parseInt(document.getElementById('preview-seek').value);
+            const filters = collectFilters();
+            
+            const loading = document.getElementById('preview-loading');
+            loading.classList.add('visible');
+            
+            try {
+                // fetch filtered frame
+                const filteredResp = await fetch('/preview', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        date: currentDate,
+                        time: currentTime,
+                        filename: currentFilename,
+                        filters: filters,
+                        seek: seek
+                    })
+                });
+                
+                if (filteredResp.ok) {
+                    const blob = await filteredResp.blob();
+                    previewFilteredUrl = URL.createObjectURL(blob);
+                }
+                
+                // fetch original frame (no filters)
+                const origResp = await fetch('/preview', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        date: currentDate,
+                        time: currentTime,
+                        filename: currentFilename,
+                        filters: {},
+                        seek: seek
+                    })
+                });
+                
+                if (origResp.ok) {
+                    const blob = await origResp.blob();
+                    previewOriginalUrl = URL.createObjectURL(blob);
+                }
+                
+                applyPreviewMode();
+                
+            } catch (e) {
+                console.error('preview failed:', e);
+            }
+            
+            loading.classList.remove('visible');
+        }
+        
+        function setPreviewMode(mode) {
+            previewMode = mode;
+            document.getElementById('preview-btn-filtered').classList.toggle('active', mode === 'filtered');
+            document.getElementById('preview-btn-compare').classList.toggle('active', mode === 'compare');
+            document.getElementById('preview-btn-original').classList.toggle('active', mode === 'original');
+            applyPreviewMode();
+        }
+        
+        function applyPreviewMode() {
+            const img = document.getElementById('preview-img');
+            clearInterval(compareInterval);
+            
+            if (previewMode === 'filtered' && previewFilteredUrl) {
+                img.src = previewFilteredUrl;
+            } else if (previewMode === 'original' && previewOriginalUrl) {
+                img.src = previewOriginalUrl;
+            } else if (previewMode === 'compare') {
+                // alternate between original and filtered every 1.2s
+                previewShowingOriginal = false;
+                if (previewFilteredUrl) img.src = previewFilteredUrl;
+                compareInterval = setInterval(() => {
+                    previewShowingOriginal = !previewShowingOriginal;
+                    if (previewShowingOriginal && previewOriginalUrl) {
+                        img.src = previewOriginalUrl;
+                    } else if (previewFilteredUrl) {
+                        img.src = previewFilteredUrl;
+                    }
+                }, 1200);
+            }
+        }
+        
+        /* =============================================
+           modal open / close / reset
+           ============================================= */
         function showProcessModal(date, time, filename) {
             currentDate = date;
             currentTime = time;
             currentFilename = filename;
+            document.getElementById('modal-filename').textContent = filename;
             document.getElementById('process-modal').classList.add('active');
+            
+            // initial preview
+            fetchPreview();
         }
         
         function closeProcessModal() {
             document.getElementById('process-modal').classList.remove('active');
+            clearInterval(compareInterval);
+            clearTimeout(previewTimer);
         }
         
-        async function startProcessing() {
-            const filters = {
-                deinterlace: document.getElementById('filter-deinterlace').checked,
-                denoise: document.getElementById('filter-denoise').checked,
-                denoise_level: document.getElementById('denoise-level').value,
-                audio_cleanup: document.getElementById('filter-audio').checked,
-                brightness: parseInt(document.getElementById('filter-brightness').value),
-                saturation: parseInt(document.getElementById('filter-saturation').value),
-                sharpen: document.getElementById('filter-sharpen').checked
+        function resetFilters() {
+            // reset section states
+            const defaults = {deinterlace: true, denoise: false, whitebalance: false, image: false, sharpen: false, crop: false, audio: false};
+            for (const [key, val] of Object.entries(defaults)) {
+                sectionStates[key] = val;
+                const toggle = document.getElementById('toggle-' + key);
+                const body = document.getElementById('body-' + key);
+                if (val) {
+                    toggle.classList.add('active');
+                    body.classList.add('visible');
+                } else {
+                    toggle.classList.remove('active');
+                    body.classList.remove('visible');
+                }
+            }
+            
+            // reset all sliders and selects to defaults
+            const resets = {
+                'deinterlace-method': 'bwdif',
+                'yadif-mode': '1',
+                'denoise-spatial': '3',
+                'denoise-temporal': '6',
+                'color-temp': '0',
+                'color-tint': '0',
+                'brightness': '0',
+                'contrast': '100',
+                'saturation': '100',
+                'gamma': '100',
+                'sharpen-luma': '0.8',
+                'sharpen-chroma': '0.4',
+                'crop-mode': 'none',
+                'output-aspect': '4:3',
+                'highpass-freq': '80',
+                'lowpass-freq': '0',
+                'noise-reduction': '0.0001',
+                'dehum-mode': 'off',
+                'dehum-freq': '60',
+                'loudnorm-mode': 'on',
+                'audio-bitrate': '192',
+                'quality-mode': 'crf',
+                'crf-value': '20',
+                'target-bitrate': '5000',
+                'encode-preset': 'medium',
+                'pix-fmt': 'yuv420p'
             };
+            
+            for (const [id, val] of Object.entries(resets)) {
+                const el = document.getElementById(id);
+                if (el) el.value = val;
+            }
+            
+            // reset displayed values
+            document.getElementById('val-denoise-spatial').textContent = '3.0';
+            document.getElementById('val-denoise-temporal').textContent = '6.0';
+            document.getElementById('val-color-temp').textContent = '0';
+            document.getElementById('val-color-tint').textContent = '0';
+            document.getElementById('val-brightness').textContent = '0';
+            document.getElementById('val-contrast').textContent = '100%';
+            document.getElementById('val-saturation').textContent = '100%';
+            document.getElementById('val-gamma').textContent = '100%';
+            document.getElementById('val-sharpen-luma').textContent = '0.8';
+            document.getElementById('val-sharpen-chroma').textContent = '0.4';
+            document.getElementById('val-highpass-freq').textContent = '80 Hz';
+            document.getElementById('val-lowpass-freq').textContent = 'Off';
+            document.getElementById('val-noise-reduction').textContent = '0.0001';
+            document.getElementById('val-crf-value').textContent = '20';
+            document.getElementById('val-target-bitrate').textContent = '5000 kbps';
+            
+            // reset visibility
+            document.getElementById('yadif-mode-row').style.display = 'none';
+            document.getElementById('dehum-freq-row').style.display = 'none';
+            toggleQualityMode();
+            
+            schedulePreview();
+        }
+        
+        /* =============================================
+           start processing
+           ============================================= */
+        async function startProcessing() {
+            const filters = collectFilters();
             
             try {
                 const response = await fetch('/process', {
@@ -503,6 +1372,9 @@
             }
         }
         
+        /* =============================================
+           status polling
+           ============================================= */
         async function updateStatus() {
             try {
                 const response = await fetch('/status');
@@ -519,7 +1391,6 @@
                     status.textContent = 'Ready';
                 }
                 
-                // show processing status
                 const processingDiv = document.getElementById('processing-status');
                 if (data.processing_jobs > 0) {
                     processingDiv.style.display = 'flex';
@@ -534,37 +1405,30 @@
         }
         
         async function deleteVideo(date, time, type, filename) {
-            if (!confirm(`delete ${filename}?`)) {
-                return;
-            }
+            if (!confirm(`Delete ${filename}?`)) return;
             
             try {
-                const response = await fetch(`/delete/${date}/${time}/${type}/${filename}`, {
-                    method: 'POST'
-                });
+                const response = await fetch(`/delete/${date}/${time}/${type}/${filename}`, {method: 'POST'});
                 const data = await response.json();
-                
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert('failed to delete: ' + data.error);
-                }
+                if (data.success) location.reload();
+                else alert('Failed to delete: ' + data.error);
             } catch (e) {
-                alert('failed to delete: ' + e.message);
+                alert('Failed to delete: ' + e.message);
             }
         }
         
-        // close modal when clicking outside
+        // close modal on backdrop click
         document.getElementById('process-modal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeProcessModal();
-            }
+            if (e.target === this) closeProcessModal();
         });
         
-        // initial status update
-        updateStatus();
+        // keyboard shortcut: escape to close modal
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeProcessModal();
+        });
         
-        // poll status
+        // initial status + polling
+        updateStatus();
         setInterval(updateStatus, 2000);
     </script>
 </body>
