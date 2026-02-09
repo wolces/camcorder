@@ -2,7 +2,9 @@
 
 This repo contains code that configures a Raspberry Pi to act as a digital video recorder for an analog video source. It additionally creates a wifi AP and webserver for accessing and transcoding recordings.
 
-I'm using it with an old Sony CCD-VX3 that I recently purchased on eBay. Additionally, I configured it with a LP15R1WHTRED-N LED button to initiate and end recordings, and a 3S Waveshare 23884 "UPS" power supply. Any momentary switch + LED + power supply should work.
+I'm using it with an old Sony CCD-VX3 and Hauppauge USB-Live2 capture device, both of which I recently purchased on eBay. They are connected via the camcorder's S-Video out port. If you wanted to use it with composite or a different capture device, you would need to ensure the correct drivers are fetched in the `setup.sh` script and/or modify the `record_button.py` file.
+
+Additionally, I configured it with a LP15R1WHTRED-N LED button to initiate and end recordings, and a 3S Waveshare 23884 "UPS" power supply. Any momentary switch + LED + power supply should allow for a similar configuration.
 
 
 ## deployment (new pi or fresh install)
