@@ -1,15 +1,8 @@
-# raspberry pi camcorder system
+# Raspberry Pi tapeless camcorder system
 
-converts a raspberry pi + capture card + old camcorder into a tapeless recording system with wifi access.
+This repo contains code that configures a Raspberry Pi to act as a digital video recorder for an analog video source. It additionally creates a wifi AP and webserver for accessing and transcoding recordings.
 
-## features
-
-- **button-controlled recording**: physical button to start/stop recordings
-- **automatic deinterlacing**: background processing of recorded footage
-- **wifi access point**: creates its own wifi network for easy access
-- **web interface**: browse, stream, and download recordings from any device
-- **auto-updates**: automatically pulls code updates when ethernet is connected
-- **easy deployment**: bootstrap script can rebuild entire system on fresh pi in minutes
+I'm using it with an old Sony CCD-VX3 that I recently purchased on eBay. Additionally, I configured it with a LP15R1WHTRED-N LED button to initiate and end recordings, and a 3S Waveshare 23884 "UPS" power supply. Any momentary switch + LED + power supply should work.
 
 
 ## deployment (new pi or fresh install)
