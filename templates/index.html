@@ -65,14 +65,28 @@
             margin: 0 auto;
         }
         
-        .section {
-            margin-bottom: 40px;
+        .date-section {
+            margin-bottom: 50px;
         }
         
-        h2 {
-            font-size: 20px;
+        .date-header {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #fff;
+            border-bottom: 1px solid #444;
+            padding-bottom: 10px;
+        }
+        
+        .video-category {
+            margin-bottom: 30px;
+        }
+        
+        h3 {
+            font-size: 16px;
             margin-bottom: 15px;
             color: #aaa;
+            text-transform: uppercase;
+            letter-spacing: 1px;
         }
         
         .video-grid {
@@ -140,15 +154,6 @@
             background: #0056b3;
         }
         
-        .btn-secondary {
-            background: #444;
-            color: white;
-        }
-        
-        .btn-secondary:hover {
-            background: #555;
-        }
-        
         .btn-danger {
             background: #dc3545;
             color: white;
@@ -186,57 +191,67 @@
     </div>
     
     <div class="container">
-        <div class="section">
-            <h2>Master Recordings (Original)</h2>
-            {% if masters %}
-            <div class="video-grid">
-                {% for video in masters %}
-                <div class="video-card">
-                    <video class="video-preview" 
-                           src="/stream/{{ video.filename }}" 
-                           preload="metadata"
-                           controls></video>
-                    <div class="video-info">
-                        <div class="video-name">{{ video.filename }}</div>
-                        <div class="video-meta">{{ video.size_mb }} MB</div>
-                        <div class="video-actions">
-                            <a href="/download/{{ video.filename }}" class="btn btn-primary">Download</a>
-                            <button class="btn btn-danger" onclick="deleteVideo('{{ video.filename }}')">Delete</button>
+        {% if videos_by_date %}
+            {% for day in videos_by_date %}
+            <div class="date-section">
+                <h2 class="date-header">{{ day.date_display }}</h2>
+                
+                <div class="video-category">
+                    <h3>Deinterlaced Video</h3>
+                    {% if day.deinterlaced %}
+                    <div class="video-grid">
+                        {% for video in day.deinterlaced %}
+                        <div class="video-card">
+                            <video class="video-preview" 
+                                   src="/stream/{{ day.date }}/deinterlaced/{{ video.filename }}" 
+                                   preload="metadata"
+                                   controls></video>
+                            <div class="video-info">
+                                <div class="video-name">{{ video.filename }}</div>
+                                <div class="video-meta">{{ video.size_mb }} MB</div>
+                                <div class="video-actions">
+                                    <a href="/download/{{ day.date }}/deinterlaced/{{ video.filename }}" class="btn btn-primary">Download</a>
+                                    <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', 'deinterlaced', '{{ video.filename }}')">Delete</button>
+                                </div>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
+                    {% else %}
+                    <div class="empty-state">No deinterlaced videos (processing may be in progress)</div>
+                    {% endif %}
                 </div>
-                {% endfor %}
-            </div>
-            {% else %}
-            <div class="empty-state">No master recordings yet</div>
-            {% endif %}
-        </div>
-        
-        <div class="section">
-            <h2>Deinterlaced (Processed)</h2>
-            {% if deinterlaced %}
-            <div class="video-grid">
-                {% for video in deinterlaced %}
-                <div class="video-card">
-                    <video class="video-preview" 
-                           src="/stream/{{ video.filename }}" 
-                           preload="metadata"
-                           controls></video>
-                    <div class="video-info">
-                        <div class="video-name">{{ video.filename }}</div>
-                        <div class="video-meta">{{ video.size_mb }} MB</div>
-                        <div class="video-actions">
-                            <a href="/download/{{ video.filename }}" class="btn btn-primary">Download</a>
-                            <button class="btn btn-danger" onclick="deleteVideo('{{ video.filename }}')">Delete</button>
+                
+                <div class="video-category">
+                    <h3>Raw Video</h3>
+                    {% if day.raw %}
+                    <div class="video-grid">
+                        {% for video in day.raw %}
+                        <div class="video-card">
+                            <video class="video-preview" 
+                                   src="/stream/{{ day.date }}/raw/{{ video.filename }}" 
+                                   preload="metadata"
+                                   controls></video>
+                            <div class="video-info">
+                                <div class="video-name">{{ video.filename }}</div>
+                                <div class="video-meta">{{ video.size_mb }} MB</div>
+                                <div class="video-actions">
+                                    <a href="/download/{{ day.date }}/raw/{{ video.filename }}" class="btn btn-primary">Download</a>
+                                    <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', 'raw', '{{ video.filename }}')">Delete</button>
+                                </div>
+                            </div>
                         </div>
+                        {% endfor %}
                     </div>
+                    {% else %}
+                    <div class="empty-state">No raw videos</div>
+                    {% endif %}
                 </div>
-                {% endfor %}
             </div>
-            {% else %}
-            <div class="empty-state">No processed recordings yet</div>
-            {% endif %}
-        </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">No recordings yet</div>
+        {% endif %}
     </div>
     
     <script>
@@ -261,13 +276,13 @@
             }
         }
         
-        async function deleteVideo(filename) {
+        async function deleteVideo(date, type, filename) {
             if (!confirm(`delete ${filename}?`)) {
                 return;
             }
             
             try {
-                const response = await fetch(`/delete/${filename}`, {
+                const response = await fetch(`/delete/${date}/${type}/${filename}`, {
                     method: 'POST'
                 });
                 const data = await response.json();

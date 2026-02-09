@@ -2,10 +2,12 @@
 """
 web server for raspberry pi camcorder
 provides video browsing, streaming, and downloading
+organized by date
 """
 
 import os
-import mimetypes
+import re
+from datetime import datetime
 from flask import Flask, render_template, send_file, Response, jsonify, request
 from pathlib import Path
 import subprocess
@@ -14,31 +16,89 @@ app = Flask(__name__)
 
 # paths
 VIDEO_DIR = os.path.expanduser("~/Videos")
-DEINTERLACED_DIR = os.path.join(VIDEO_DIR, "deinterlaced")
 
-def get_video_list(directory):
-    """get list of video files with metadata"""
-    videos = []
-    if not os.path.exists(directory):
-        return videos
+def parse_filename_date(filename):
+    """extract date from filename like record_2026-02-08_14-23-45.mp4"""
+    match = re.match(r'record_(\d{4}-\d{2}-\d{2})_', filename)
+    if match:
+        date_str = match.group(1)
+        return datetime.strptime(date_str, '%Y-%m-%d').date()
+    return None
+
+def get_video_metadata(filepath, filename, video_type):
+    """get metadata for a single video file"""
+    stat = os.stat(filepath)
+    return {
+        'filename': filename,
+        'type': video_type,  # 'raw' or 'deinterlaced'
+        'size': stat.st_size,
+        'size_mb': round(stat.st_size / 1024 / 1024, 1),
+        'modified': stat.st_mtime
+    }
+
+def get_videos_by_date():
+    """organize videos by date with raw and deinterlaced versions"""
+    videos_by_date = {}
     
-    for filename in sorted(os.listdir(directory), reverse=True):
-        if filename.endswith('.mp4'):
-            filepath = os.path.join(directory, filename)
-            stat = os.stat(filepath)
-            videos.append({
-                'filename': filename,
-                'size': stat.st_size,
-                'size_mb': round(stat.st_size / 1024 / 1024, 1),
-                'modified': stat.st_mtime
-            })
-    return videos
+    # scan all date directories
+    if os.path.exists(VIDEO_DIR):
+        for date_dirname in sorted(os.listdir(VIDEO_DIR), reverse=True):
+            date_path = os.path.join(VIDEO_DIR, date_dirname)
+            
+            # skip if not a directory or doesn't match YYYY-MM-DD format
+            if not os.path.isdir(date_path):
+                continue
+            if not re.match(r'\d{4}-\d{2}-\d{2}', date_dirname):
+                continue
+            
+            try:
+                date = datetime.strptime(date_dirname, '%Y-%m-%d').date()
+            except ValueError:
+                continue
+            
+            raw_videos = []
+            deinterlaced_videos = []
+            
+            # get raw videos
+            raw_dir = os.path.join(date_path, 'raw')
+            if os.path.exists(raw_dir):
+                for filename in sorted(os.listdir(raw_dir), reverse=True):
+                    if filename.endswith('.mp4'):
+                        filepath = os.path.join(raw_dir, filename)
+                        raw_videos.append(get_video_metadata(filepath, filename, 'raw'))
+            
+            # get deinterlaced videos
+            deinterlaced_dir = os.path.join(date_path, 'deinterlaced')
+            if os.path.exists(deinterlaced_dir):
+                for filename in sorted(os.listdir(deinterlaced_dir), reverse=True):
+                    if filename.endswith('.mp4'):
+                        filepath = os.path.join(deinterlaced_dir, filename)
+                        deinterlaced_videos.append(get_video_metadata(filepath, filename, 'deinterlaced'))
+            
+            # only include dates that have at least one video
+            if raw_videos or deinterlaced_videos:
+                videos_by_date[date] = {
+                    'raw': raw_videos,
+                    'deinterlaced': deinterlaced_videos
+                }
+    
+    return videos_by_date
 
 @app.route('/')
 def index():
-    """main page showing all videos"""
-    masters = get_video_list(VIDEO_DIR)
-    deinterlaced = get_video_list(DEINTERLACED_DIR)
+    """main page showing all videos organized by date"""
+    videos_by_date = get_videos_by_date()
+    
+    # format for template
+    formatted_videos = []
+    for date in sorted(videos_by_date.keys(), reverse=True):
+        videos = videos_by_date[date]
+        formatted_videos.append({
+            'date': date.strftime('%Y-%m-%d'),
+            'date_display': date.strftime('%A, %B %d, %Y'),
+            'raw': videos['raw'],
+            'deinterlaced': videos['deinterlaced']
+        })
     
     # get disk usage
     disk = os.statvfs(VIDEO_DIR)
@@ -47,31 +107,24 @@ def index():
     used_gb = total_gb - free_gb
     
     return render_template('index.html', 
-                         masters=masters,
-                         deinterlaced=deinterlaced,
+                         videos_by_date=formatted_videos,
                          disk_used=round(used_gb, 1),
                          disk_total=round(total_gb, 1))
 
-@app.route('/download/<path:filename>')
-def download(filename):
+@app.route('/download/<date>/<video_type>/<filename>')
+def download(date, video_type, filename):
     """download a video file"""
-    # check both directories
-    filepath = os.path.join(VIDEO_DIR, filename)
-    if not os.path.exists(filepath):
-        filepath = os.path.join(DEINTERLACED_DIR, filename)
+    filepath = os.path.join(VIDEO_DIR, date, video_type, filename)
     
     if not os.path.exists(filepath):
         return "file not found", 404
     
     return send_file(filepath, as_attachment=True)
 
-@app.route('/stream/<path:filename>')
-def stream(filename):
+@app.route('/stream/<date>/<video_type>/<filename>')
+def stream(date, video_type, filename):
     """stream a video file with range support"""
-    # check both directories
-    filepath = os.path.join(VIDEO_DIR, filename)
-    if not os.path.exists(filepath):
-        filepath = os.path.join(DEINTERLACED_DIR, filename)
+    filepath = os.path.join(VIDEO_DIR, date, video_type, filename)
     
     if not os.path.exists(filepath):
         return "file not found", 404
@@ -111,13 +164,10 @@ def stream(filename):
     response.headers.add('Content-Length', chunk_size)
     return response
 
-@app.route('/delete/<path:filename>', methods=['POST'])
-def delete(filename):
+@app.route('/delete/<date>/<video_type>/<filename>', methods=['POST'])
+def delete(date, video_type, filename):
     """delete a video file"""
-    # check both directories
-    filepath = os.path.join(VIDEO_DIR, filename)
-    if not os.path.exists(filepath):
-        filepath = os.path.join(DEINTERLACED_DIR, filename)
+    filepath = os.path.join(VIDEO_DIR, date, video_type, filename)
     
     if not os.path.exists(filepath):
         return jsonify({'success': False, 'error': 'file not found'}), 404
@@ -149,9 +199,8 @@ def status():
     })
 
 if __name__ == '__main__':
-    # ensure directories exist
+    # ensure base directory exists
     os.makedirs(VIDEO_DIR, exist_ok=True)
-    os.makedirs(DEINTERLACED_DIR, exist_ok=True)
     
-    # run on all interfaces, port 80 (requires root or capabilities)
+    # run on all interfaces, port 8080
     app.run(host='0.0.0.0', port=8080, debug=False, threaded=True)

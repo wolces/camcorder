@@ -13,16 +13,27 @@ AUDIO_DEVICE = "hw:2,0"
 
 # Directories
 OUTPUT_DIR = os.path.expanduser("~/Videos")
-DEINTERLACED_DIR = os.path.join(OUTPUT_DIR, "deinterlaced")
-
-# Ensure directories exist
-os.makedirs(DEINTERLACED_DIR, exist_ok=True)
 
 button = Button(BUTTON_PIN, pull_up=True, hold_time=3)
 led = LED(LED_PIN)
 
 recording_process = None
 current_recording_filename = None
+current_date_dir = None
+
+def get_date_directory():
+    """Get or create directory for today's date"""
+    today = datetime.date.today()
+    date_dir = os.path.join(OUTPUT_DIR, today.strftime("%Y-%m-%d"))
+    
+    # Create date directory and subdirectories
+    raw_dir = os.path.join(date_dir, "raw")
+    deinterlaced_dir = os.path.join(date_dir, "deinterlaced")
+    
+    os.makedirs(raw_dir, exist_ok=True)
+    os.makedirs(deinterlaced_dir, exist_ok=True)
+    
+    return date_dir, raw_dir, deinterlaced_dir
 
 def configure_device():
     """
@@ -41,12 +52,12 @@ def configure_device():
     except Exception as e:
         print(f"Hardware setup warning: {e}")
 
-def transcode_background(input_path):
+def transcode_background(input_path, output_dir):
     """
     Launches a detached FFmpeg process to deinterlace the video.
     """
     filename = os.path.basename(input_path)
-    output_path = os.path.join(DEINTERLACED_DIR, filename)
+    output_path = os.path.join(output_dir, filename)
     
     print(f"Queueing background transcode: {output_path}")
     
@@ -58,7 +69,6 @@ def transcode_background(input_path):
         "-c:v", "libx264",
         "-preset", "superfast",
         "-crf", "23",
-        "-aspect", "4:3",
         "-c:a", "copy",
         output_path
     ]
@@ -66,18 +76,20 @@ def transcode_background(input_path):
     subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 def start_recording():
-    global recording_process, current_recording_filename
+    global recording_process, current_recording_filename, current_date_dir
     
     # Run setup immediately before recording
     configure_device()
     
+    # Get today's directory structure
+    date_dir, raw_dir, deinterlaced_dir = get_date_directory()
+    current_date_dir = (date_dir, raw_dir, deinterlaced_dir)
+    
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    current_recording_filename = os.path.join(OUTPUT_DIR, f"record_{timestamp}.mp4")
+    current_recording_filename = os.path.join(raw_dir, f"record_{timestamp}.mp4")
     
     print(f"Starting archival recording: {current_recording_filename}")
 
-    # The "Master" Archival Command
-    # Preserves interlacing for future QTGMC restoration
     cmd = [
         "/usr/bin/ffmpeg", "-y",
         "-f", "v4l2",
@@ -88,7 +100,6 @@ def start_recording():
         "-c:v", "libx264",
         "-crf", "16",
         "-pix_fmt", "yuv422p",
-        "-aspect", "4:3",
         "-preset", "superfast",
         "-c:a", "aac",
         "-b:a", "192k",
@@ -102,7 +113,7 @@ def start_recording():
     led.on()
 
 def stop_recording():
-    global recording_process, current_recording_filename
+    global recording_process, current_recording_filename, current_date_dir
     
     if recording_process:
         print("Stopping recording...")
@@ -118,9 +129,11 @@ def stop_recording():
         
         # Trigger the async deinterlace
         if current_recording_filename and os.path.exists(current_recording_filename):
-            transcode_background(current_recording_filename)
+            _, _, deinterlaced_dir = current_date_dir
+            transcode_background(current_recording_filename, deinterlaced_dir)
         
         current_recording_filename = None
+        current_date_dir = None
 
 def toggle_recording():
     if recording_process is None:
@@ -139,5 +152,5 @@ def safe_shutdown():
 button.when_pressed = toggle_recording
 button.when_held = safe_shutdown
 
-print("System Ready. Saving masters to ~/Videos and copies to ~/Videos/deinterlaced")
+print("System Ready. Videos organized by date in ~/Videos/")
 pause()
