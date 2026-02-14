@@ -21,10 +21,10 @@ recording_process = None
 current_recording_info = None
 
 def get_time_directory():
-    """Get or create directory for current date and time"""
+    """Get or create directory for current date and time (with seconds)"""
     now = datetime.datetime.now()
     date_str = now.strftime("%Y-%m-%d")
-    time_str = now.strftime("%H-%M")
+    time_str = now.strftime("%H-%M-%S")
     
     date_dir = os.path.join(OUTPUT_DIR, date_str)
     time_dir = os.path.join(date_dir, time_str)
@@ -57,9 +57,12 @@ def process_with_defaults(input_path, output_dir):
     """
     Process video with default settings:
     - Deinterlacing (bwdif)
-    - High-pass filter @ 80Hz
-    - Noise reduction (anlmdn)
+    - High-pass filter @ 120Hz
+    - Low-pass filter @ 11000Hz
+    - Noise reduction (anlmdn) at 0.0015
+    - 60Hz de-hum (notch filter + harmonics)
     - Loudness normalization
+    - YUV 420p output
     """
     filename = os.path.basename(input_path)
     base_name = filename.replace('.mp4', '')
@@ -71,8 +74,17 @@ def process_with_defaults(input_path, output_dir):
     # Video filters: deinterlace only
     vf = "setfield=tff,bwdif=1"
     
-    # Audio filters: highpass, noise reduction, normalization
-    af = "highpass=f=80,anlmdn=s=0.0001,loudnorm"
+    # Audio filters: highpass, lowpass, noise reduction, de-hum + harmonics, normalization
+    af = (
+        "highpass=f=120,"
+        "lowpass=f=11000,"
+        "anlmdn=s=0.0015,"
+        "bandreject=f=60:width_type=q:width=5,"
+        "bandreject=f=120:width_type=q:width=5,"
+        "bandreject=f=180:width_type=q:width=5,"
+        "bandreject=f=240:width_type=q:width=5,"
+        "loudnorm"
+    )
     
     cmd = [
         "nice", "-n", "10",
@@ -83,6 +95,7 @@ def process_with_defaults(input_path, output_dir):
         "-c:v", "libx264",
         "-preset", "medium",
         "-crf", "18",
+        "-pix_fmt", "yuv420p",
         "-aspect", "4:3",
         "-c:a", "aac",
         "-b:a", "192k",

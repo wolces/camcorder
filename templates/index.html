@@ -80,6 +80,35 @@
             color: #fff;
             border-bottom: 1px solid #444;
             padding-bottom: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            user-select: none;
+        }
+        
+        .date-header:hover {
+            color: #ccc;
+        }
+        
+        .date-chevron {
+            display: inline-block;
+            font-size: 14px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .date-chevron.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .date-body {
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .date-body.collapsed {
+            max-height: 0 !important;
         }
         
         .time-section {
@@ -478,7 +507,6 @@
         .preview-split-right img {
             height: 100%;
             object-fit: contain;
-            /* image is positioned so it aligns with the left image */
             position: absolute;
             right: 0;
         }
@@ -655,73 +683,77 @@
         {% if videos_by_date %}
             {% for day in videos_by_date %}
             <div class="date-section">
-                <h2 class="date-header">{{ day.date_display }}</h2>
-                
-                {% for time_slot in day.times %}
-                <div class="time-section">
-                    <h3 class="time-header">⏱️ {{ time_slot.time_display }}</h3>
-                    
-                    <div class="video-category">
-                        <h4>Raw Video</h4>
-                        {% if time_slot.raw %}
-                        <div class="video-grid">
-                            {% for video in time_slot.raw %}
-                            <div class="video-card">
-                                <video class="video-preview" 
-                                       src="/stream/{{ day.date }}/{{ time_slot.time }}/raw/{{ video.filename }}" 
-                                       preload="metadata"
-                                       controls></video>
-                                <div class="video-info">
-                                    <div class="video-name">{{ video.filename }}</div>
-                                    <div class="video-meta">{{ video.size_mb }} MB · {{ video.created_display }}</div>
-                                    <div class="video-actions">
-                                        <button class="btn btn-success" onclick="showProcessModal('{{ day.date }}', '{{ time_slot.time }}', '{{ video.filename }}')">Process</button>
-                                        <a href="/download/{{ day.date }}/{{ time_slot.time }}/raw/{{ video.filename }}" class="btn btn-primary">Download</a>
-                                        <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', '{{ time_slot.time }}', 'raw', '{{ video.filename }}')">Delete</button>
+                <h2 class="date-header" onclick="toggleDate(this)">
+                    <span class="date-chevron">▼</span>
+                    {{ day.date_display }}
+                </h2>
+                <div class="date-body">
+                    {% for time_slot in day.times %}
+                    <div class="time-section">
+                        <h3 class="time-header">⏱️ {{ time_slot.time_display }}</h3>
+                        
+                        <div class="video-category">
+                            <h4>Raw Video</h4>
+                            {% if time_slot.raw %}
+                            <div class="video-grid">
+                                {% for video in time_slot.raw %}
+                                <div class="video-card">
+                                    <video class="video-preview" 
+                                           src="/stream/{{ day.date }}/{{ time_slot.time }}/raw/{{ video.filename }}" 
+                                           preload="metadata"
+                                           controls></video>
+                                    <div class="video-info">
+                                        <div class="video-name">{{ video.filename }}</div>
+                                        <div class="video-meta">{{ video.size_mb }} MB · {{ video.created_display }}</div>
+                                        <div class="video-actions">
+                                            <button class="btn btn-success" onclick="showProcessModal('{{ day.date }}', '{{ time_slot.time }}', '{{ video.filename }}')">Process</button>
+                                            <a href="/download/{{ day.date }}/{{ time_slot.time }}/raw/{{ video.filename }}" class="btn btn-primary">Download</a>
+                                            <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', '{{ time_slot.time }}', 'raw', '{{ video.filename }}')">Delete</button>
+                                        </div>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
+                            {% else %}
+                            <div class="empty-state">No raw videos</div>
+                            {% endif %}
                         </div>
-                        {% else %}
-                        <div class="empty-state">No raw videos</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="video-category">
-                        <h4>Processed Videos</h4>
-                        {% if time_slot.processed %}
-                        <div class="video-grid">
-                            {% for video in time_slot.processed %}
-                            <div class="video-card">
-                                <video class="video-preview" 
-                                       src="/stream/{{ day.date }}/{{ time_slot.time }}/processed/{{ video.filename }}" 
-                                       preload="metadata"
-                                       controls></video>
-                                <div class="video-info">
-                                    <div class="video-name">{{ video.filename }}</div>
-                                    <div class="video-meta">{{ video.size_mb }} MB · {{ video.created_display }}</div>
-                                    {% if video.filter_tags %}
-                                    <div class="video-filters">
-                                        {% for tag in video.filter_tags %}
-                                        <span class="filter-tag">{{ tag }}</span>
-                                        {% endfor %}
-                                    </div>
-                                    {% endif %}
-                                    <div class="video-actions">
-                                        <a href="/download/{{ day.date }}/{{ time_slot.time }}/processed/{{ video.filename }}" class="btn btn-primary">Download</a>
-                                        <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', '{{ time_slot.time }}', 'processed', '{{ video.filename }}')">Delete</button>
+                        
+                        <div class="video-category">
+                            <h4>Processed Videos</h4>
+                            {% if time_slot.processed %}
+                            <div class="video-grid">
+                                {% for video in time_slot.processed %}
+                                <div class="video-card">
+                                    <video class="video-preview" 
+                                           src="/stream/{{ day.date }}/{{ time_slot.time }}/processed/{{ video.filename }}" 
+                                           preload="metadata"
+                                           controls></video>
+                                    <div class="video-info">
+                                        <div class="video-name">{{ video.filename }}</div>
+                                        <div class="video-meta">{{ video.size_mb }} MB · {{ video.created_display }}</div>
+                                        {% if video.filter_tags %}
+                                        <div class="video-filters">
+                                            {% for tag in video.filter_tags %}
+                                            <span class="filter-tag">{{ tag }}</span>
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        <div class="video-actions">
+                                            <a href="/download/{{ day.date }}/{{ time_slot.time }}/processed/{{ video.filename }}" class="btn btn-primary">Download</a>
+                                            <button class="btn btn-danger" onclick="deleteVideo('{{ day.date }}', '{{ time_slot.time }}', 'processed', '{{ video.filename }}')">Delete</button>
+                                        </div>
                                     </div>
                                 </div>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
+                            {% else %}
+                            <div class="empty-state">Default processed version will appear shortly...</div>
+                            {% endif %}
                         </div>
-                        {% else %}
-                        <div class="empty-state">Default processed version will appear shortly...</div>
-                        {% endif %}
                     </div>
+                    {% endfor %}
                 </div>
-                {% endfor %}
             </div>
             {% endfor %}
         {% else %}
@@ -767,6 +799,80 @@
                                     <select id="yadif-mode" onchange="schedulePreview()">
                                         <option value="1">Field output (60fps — smoother)</option>
                                         <option value="0">Frame output (30fps — smaller file)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- stabilize -->
+                    <div class="control-section">
+                        <div class="section-header" onclick="toggleSection('stabilize')">
+                            <div class="section-toggle" id="toggle-stabilize"></div>
+                            <span class="section-label">Stabilize</span>
+                        </div>
+                        <div class="section-body" id="body-stabilize">
+                            <div class="control-hint" style="margin-bottom:12px; color:#c90;">
+                                Stabilization requires a two-pass encode and cannot be previewed. 
+                                The first pass analyzes motion across the entire video, so processing 
+                                will take roughly twice as long.
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Shakiness</span>
+                                <div class="control-input">
+                                    <input type="range" id="stabilize-shakiness" min="1" max="10" value="5" step="1" oninput="updateValue(this)">
+                                </div>
+                                <span class="control-value" id="val-stabilize-shakiness">5</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px; margin-bottom:8px;">How shaky the source is. 1 = barely shaky, 10 = very shaky.</div>
+                            <div class="control-row">
+                                <span class="control-label">Accuracy</span>
+                                <div class="control-input">
+                                    <input type="range" id="stabilize-accuracy" min="1" max="15" value="15" step="1" oninput="updateValue(this)">
+                                </div>
+                                <span class="control-value" id="val-stabilize-accuracy">15</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px; margin-bottom:8px;">Detection accuracy. Higher = better results but slower analysis.</div>
+                            <div class="control-row">
+                                <span class="control-label">Step size</span>
+                                <div class="control-input">
+                                    <input type="range" id="stabilize-stepsize" min="1" max="32" value="6" step="1" oninput="updateValue(this)">
+                                </div>
+                                <span class="control-value" id="val-stabilize-stepsize">6</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px; margin-bottom:8px;">Region size in pixels for motion search. Smaller = more precise but slower.</div>
+                            <div class="control-row">
+                                <span class="control-label">Smoothing</span>
+                                <div class="control-input">
+                                    <input type="range" id="stabilize-smoothing" min="1" max="30" value="10" step="1" oninput="updateValue(this)">
+                                </div>
+                                <span class="control-value" id="val-stabilize-smoothing">10</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px; margin-bottom:8px;">Number of frames used for smoothing. Higher = smoother camera path but less responsive to intentional movement.</div>
+                            <div class="control-row">
+                                <span class="control-label">Crop mode</span>
+                                <div class="control-input">
+                                    <select id="stabilize-crop">
+                                        <option value="keep" selected>Keep original size (may show borders)</option>
+                                        <option value="black">Fill borders with black</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control-row">
+                                <span class="control-label">Zoom</span>
+                                <div class="control-input">
+                                    <input type="range" id="stabilize-zoom" min="0" max="20" value="0" step="1" oninput="updateValuePct(this)">
+                                </div>
+                                <span class="control-value" id="val-stabilize-zoom">0%</span>
+                            </div>
+                            <div class="control-hint" style="margin-left:90px; margin-bottom:8px;">Extra zoom to hide border artifacts. 0 = no extra zoom.</div>
+                            <div class="control-row">
+                                <span class="control-label">Optimal zoom</span>
+                                <div class="control-input">
+                                    <select id="stabilize-optzoom">
+                                        <option value="0">Off — use only manual zoom</option>
+                                        <option value="1" selected>Static — find best constant zoom</option>
+                                        <option value="2">Adaptive — zoom varies per frame</option>
                                     </select>
                                 </div>
                             </div>
@@ -1092,6 +1198,7 @@
                         Adjust filters on the left and the preview will update automatically. 
                         Use the seek slider to pick which frame to preview. In compare mode, 
                         drag the divider left and right to see original vs. filtered side by side.
+                        Note: stabilization cannot be previewed (it requires full-video analysis).
                     </div>
                 </div>
             </div>
@@ -1112,13 +1219,14 @@
         let currentTime = '';
         let currentFilename = '';
         let previewTimer = null;
-        let previewMode = 'compare';  // 'filtered', 'original', 'compare'
+        let previewMode = 'compare';
         let previewOriginalUrl = '';
         let previewFilteredUrl = '';
-        let splitPosition = 50;  // percent from left
+        let splitPosition = 50;
         
         const sectionStates = {
             deinterlace: true,
+            stabilize: false,
             denoise: false,
             whitebalance: false,
             image: false,
@@ -1126,6 +1234,29 @@
             crop: false,
             audio: false
         };
+        
+        /* =============================================
+           collapsible date sections
+           ============================================= */
+        function toggleDate(headerEl) {
+            const chevron = headerEl.querySelector('.date-chevron');
+            const body = headerEl.nextElementSibling;
+            
+            if (body.classList.contains('collapsed')) {
+                body.classList.remove('collapsed');
+                body.style.maxHeight = body.scrollHeight + 'px';
+                chevron.classList.remove('collapsed');
+                // after animation, remove inline max-height so new content can expand
+                setTimeout(function() { body.style.maxHeight = 'none'; }, 300);
+            } else {
+                // set explicit height first so transition works
+                body.style.maxHeight = body.scrollHeight + 'px';
+                // force reflow
+                body.offsetHeight;
+                body.classList.add('collapsed');
+                chevron.classList.add('collapsed');
+            }
+        }
         
         /* =============================================
            section toggles
@@ -1142,7 +1273,10 @@
                 toggle.classList.remove('active');
                 body.classList.remove('visible');
             }
-            schedulePreview();
+            // stabilize doesn't affect preview
+            if (name !== 'stabilize') {
+                schedulePreview();
+            }
         }
         
         /* =============================================
@@ -1150,7 +1284,10 @@
            ============================================= */
         function updateValue(el) {
             const display = document.getElementById('val-' + el.id);
-            if (display) display.textContent = parseFloat(el.value).toFixed(1);
+            if (display) {
+                const v = parseFloat(el.value);
+                display.textContent = Number.isInteger(v) ? v.toString() : v.toFixed(1);
+            }
         }
         
         function updateValuePct(el) {
@@ -1183,7 +1320,6 @@
             const totalSec = parseFloat(el.value);
             const m = Math.floor(totalSec / 60);
             const s = totalSec % 60;
-            // show tenths for sub-second precision
             const secStr = s < 10 ? '0' + s.toFixed(1) : s.toFixed(1);
             document.getElementById('val-preview-seek').textContent = m + ':' + secStr;
         }
@@ -1216,6 +1352,15 @@
             if (f.deinterlace_method === 'yadif') {
                 f.deinterlace_mode = document.getElementById('yadif-mode').value;
             }
+            
+            f.stabilize = sectionStates.stabilize;
+            f.stabilize_shakiness = parseInt(document.getElementById('stabilize-shakiness').value);
+            f.stabilize_accuracy = parseInt(document.getElementById('stabilize-accuracy').value);
+            f.stabilize_stepsize = parseInt(document.getElementById('stabilize-stepsize').value);
+            f.stabilize_smoothing = parseInt(document.getElementById('stabilize-smoothing').value);
+            f.stabilize_crop = document.getElementById('stabilize-crop').value;
+            f.stabilize_zoom = parseFloat(document.getElementById('stabilize-zoom').value);
+            f.stabilize_optzoom = parseInt(document.getElementById('stabilize-optzoom').value);
             
             f.denoise = sectionStates.denoise;
             f.denoise_spatial = parseFloat(document.getElementById('denoise-spatial').value);
@@ -1287,7 +1432,6 @@
             loading.classList.add('visible');
             
             try {
-                // fire both requests in parallel
                 const [filteredResp, origResp] = await Promise.all([
                     fetch('/preview', {
                         method: 'POST',
@@ -1381,19 +1525,15 @@
             
             divider.style.left = splitPosition + '%';
             
-            // right panel clips from the split point to the right edge
             rightPanel.style.left = splitPosition + '%';
             rightPanel.style.width = (100 - splitPosition) + '%';
             
-            // the filtered image inside the right panel needs to be sized
-            // to the full box width so it aligns pixel-for-pixel with the original
             const rightImg = document.getElementById('split-img-filtered');
             rightImg.style.width = boxWidth + 'px';
             rightImg.style.left = '-' + (boxWidth * splitPosition / 100) + 'px';
             rightImg.style.right = 'auto';
         }
         
-        // drag handling for the split divider
         (function() {
             const divider = document.getElementById('split-divider');
             let dragging = false;
@@ -1423,7 +1563,6 @@
             window.addEventListener('mouseup', stopDrag);
             window.addEventListener('touchend', stopDrag);
             
-            // also update split sizing when window resizes
             window.addEventListener('resize', function() {
                 if (previewMode === 'compare') {
                     updateSplitPosition(splitPosition);
@@ -1441,7 +1580,6 @@
             document.getElementById('modal-filename').textContent = filename;
             document.getElementById('process-modal').classList.add('active');
             
-            // fetch actual video duration and configure seek slider
             const seekSlider = document.getElementById('preview-seek');
             try {
                 const resp = await fetch(`/video_info/${date}/${time}/${filename}`);
@@ -1449,13 +1587,11 @@
                     const info = await resp.json();
                     const duration = info.duration || 60;
                     seekSlider.max = duration.toFixed(1);
-                    // start preview at 10% into the video (avoids blank leader frames)
                     const startSeek = Math.min(2, duration * 0.1);
                     seekSlider.value = startSeek.toFixed(1);
                     updateSeekLabel(seekSlider);
                 }
             } catch (e) {
-                // fallback: keep default max of 60
                 seekSlider.max = 60;
             }
             
@@ -1468,7 +1604,16 @@
         }
         
         function resetFilters() {
-            const defaults = {deinterlace: true, denoise: false, whitebalance: false, image: false, sharpen: false, crop: false, audio: false};
+            const defaults = {
+                deinterlace: true,
+                stabilize: false,
+                denoise: false,
+                whitebalance: false,
+                image: false,
+                sharpen: false,
+                crop: false,
+                audio: false
+            };
             for (const [key, val] of Object.entries(defaults)) {
                 sectionStates[key] = val;
                 const toggle = document.getElementById('toggle-' + key);
@@ -1485,6 +1630,13 @@
             const resets = {
                 'deinterlace-method': 'bwdif',
                 'yadif-mode': '1',
+                'stabilize-shakiness': '5',
+                'stabilize-accuracy': '15',
+                'stabilize-stepsize': '6',
+                'stabilize-smoothing': '10',
+                'stabilize-crop': 'keep',
+                'stabilize-zoom': '0',
+                'stabilize-optzoom': '1',
                 'denoise-spatial': '3',
                 'denoise-temporal': '6',
                 'color-temp': '0',
@@ -1516,6 +1668,11 @@
                 if (el) el.value = val;
             }
             
+            document.getElementById('val-stabilize-shakiness').textContent = '5';
+            document.getElementById('val-stabilize-accuracy').textContent = '15';
+            document.getElementById('val-stabilize-stepsize').textContent = '6';
+            document.getElementById('val-stabilize-smoothing').textContent = '10';
+            document.getElementById('val-stabilize-zoom').textContent = '0%';
             document.getElementById('val-denoise-spatial').textContent = '3.0';
             document.getElementById('val-denoise-temporal').textContent = '6.0';
             document.getElementById('val-color-temp').textContent = '0';
@@ -1560,7 +1717,11 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert('Processing started! The video will appear in "Processed Videos" when complete.');
+                    let msg = 'Processing started! The video will appear in "Processed Videos" when complete.';
+                    if (filters.stabilize) {
+                        msg += '\n\nStabilization is enabled — this requires two passes and will take extra time.';
+                    }
+                    alert(msg);
                     closeProcessModal();
                     updateStatus();
                 } else {
